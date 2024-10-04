@@ -16,12 +16,23 @@ from tools import web_search_tool
 from assistant import Assistant
 from state import State
 from utilities import create_tool_node_with_fallback, _print_event
-from services.checkpointer import sync_checkpointer, retrieve_sync_connection_checkpointer, retrieve_async_connection_checkpointer
+# from services.checkpointer import sync_checkpointer, retrieve_sync_connection_checkpointer, retrieve_async_connection_checkpointer
+from services.redis_checkpointer.redis_checkpointer import retrieve_sync_connection_checkpointer
+from services.redis_checkpointer.redis_saver import RedisSaver
 from langchain_core.messages import ToolMessage
 
 
 #
-# checkpointer = MemorySaver()
+def should_continue(state):
+    messages = state["messages"]
+    last_message = messages[-1]
+    print(last_message)
+    # If there is no function call, then we finish
+    if not last_message.tool_calls:
+        return "end"
+    # Otherwise if there is, we continue
+    else:
+        return "continue"
 
 # Call the model
 model = ChatAnthropic(model="claude-3-5-sonnet-20240620", temperature=0)
@@ -53,21 +64,102 @@ builder.add_node("assistant", Assistant(assistant_runnable))
 builder.add_node("tools", create_tool_node_with_fallback(tools))
 # Define edges: these determine how the control flow moves
 builder.add_edge(START, "assistant")
-# builder.add_edge("assistant", "tools")
 builder.add_conditional_edges(
+    # First, we define the start node. We use `agent`.
+    # This means these are the edges taken after the `agent` node is called.
     "assistant",
-    tools_condition,
+    # Next, we pass in the function that will determine which node is called next.
+    should_continue,
+    # Finally we pass in a mapping.
+    # The keys are strings, and the values are other nodes.
+    # END is a special node marking that the graph should finish.
+    # What will happen is we will call `should_continue`, and then the output of that
+    # will be matched against the keys in this mapping.
+    # Based on which one it matches, that node will then be called.
+    {
+        # If `tools`, then we call the tool node.
+        "continue": "tools",
+        # Otherwise we finish.
+        "end": END,
+    },
 )
+
+# builder.add_edge("assistant", "tools")
+# builder.add_conditional_edges(
+#     "assistant",
+#     tools_condition,
+# )
 builder.add_edge("tools", "assistant")
 
 # The checkpointer lets the graph persist its state
 # this is a complete memory for the entire graph.
-checkpointer =  retrieve_sync_connection_checkpointer()
-llm_graph = builder.compile(
-    checkpointer=checkpointer,
-    interrupt_before=["tools"],
-)
+# checkpointer =  retrieve_sync_connection_checkpointer()
+with RedisSaver.from_conn_info(host="localhost", port=6379, db=0) as checkpointer:
+    llm_graph = builder.compile(
+        checkpointer=checkpointer,
+        interrupt_before=["tools"],
+    )
 
+    config = {
+        "configurable": {
+            # The passenger_id is used in our flight tools to
+            # fetch the user's flight information
+            "user_id": "restebance",
+            # Checkpoints are accessed by thread_id
+            "thread_id": "12",
+        }
+    }
+    message_inputs = [HumanMessage(content="a que hora es el evento Rangers at the heart of the 30x30 de la COP16?")]
+    _printed = set()
+    events = llm_graph.stream(
+        {"messages": message_inputs}, config, stream_mode="values"
+    )
+    # events = llm_graph.stream(
+    #     {"messages": ("user", "Si dale")}, config, stream_mode="values"
+    # )
+    for event in events:
+        _print_event(event, _printed)
+
+    user_input = input(
+        "Do you approve of the above actions? Type 'y' to continue;"
+        " otherwise, explain your requested changed.\n\n"
+    )
+
+    events_b =  llm_graph.stream(None, config, stream_mode="values")
+    for event_b in events_b:
+        _print_event(event_b, _printed)
+
+    # result = llm_graph.invoke(
+    #     None,
+    #     config,
+    # )
+    #
+    # # snapshot = llm_graph.get_state(config)
+    # # while snapshot.next:
+    #     # We have an interrupt! The agent is trying to use a tool, and the user can approve or deny it
+    #     # Note: This code is all outside of your graph. Typically, you would stream the output to a UI.
+    #     # Then, you would have the frontend trigger a new run via an API call when the user has provided input.
+    #
+    #     if user_input.strip() == "y":
+    #         # Just continue
+    #
+    #         print(result)
+    #     else:
+    #         # Satisfy the tool invocation by
+    #         # providing instructions on the requested changes / change of mind
+    #         result = llm_graph.invoke(
+    #             {
+    #                 "messages": [
+    #                     ToolMessage(
+    #                         tool_call_id=event["messages"][-1].tool_calls[0]["id"],
+    #                         content=f"API call denied by user. Reasoning: '{user_input}'. Continue assisting, accounting for the user's input.",
+    #                     )
+    #                 ]
+    #             },
+    #             config,
+    #         )
+    #     snapshot = llm_graph.get_state(config)
+    #     print(snapshot)
 # check graph
 try:
     image = Image(llm_graph.get_graph(xray=True).draw_mermaid_png())
@@ -78,52 +170,8 @@ except Exception:
     # This requires some extra dependencies and is optional
     pass
 
-config = {
-    "configurable": {
-        # The passenger_id is used in our flight tools to
-        # fetch the user's flight information
-        "user_id": "restebance",
-        # Checkpoints are accessed by thread_id
-        "thread_id": "53",
-    }
-}
 
 
-_printed = set()
-events = llm_graph.stream(
-    {"messages": ("user", "a que hora es el evento Rangers at the heart of the 30x30 de la COP16?")}, config, stream_mode="values"
-)
-for event in events:
-    _print_event(event, _printed)
-snapshot = llm_graph.get_state(config)
-while snapshot.next:
-    # We have an interrupt! The agent is trying to use a tool, and the user can approve or deny it
-    # Note: This code is all outside of your graph. Typically, you would stream the output to a UI.
-    # Then, you would have the frontend trigger a new run via an API call when the user has provided input.
-    user_input = input(
-        "Do you approve of the above actions? Type 'y' to continue;"
-        " otherwise, explain your requested changed.\n\n"
-    )
-    if user_input.strip() == "y":
-        # Just continue
-        result = llm_graph.invoke(
-            None,
-            config,
-        )
-        print(result)
-    else:
-        # Satisfy the tool invocation by
-        # providing instructions on the requested changes / change of mind
-        result = llm_graph.invoke(
-            {
-                "messages": [
-                    ToolMessage(
-                        tool_call_id=event["messages"][-1].tool_calls[0]["id"],
-                        content=f"API call denied by user. Reasoning: '{user_input}'. Continue assisting, accounting for the user's input.",
-                    )
-                ]
-            },
-            config,
-        )
-    snapshot = llm_graph.get_state(config)
+
+
 

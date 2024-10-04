@@ -23,7 +23,7 @@ from langgraph.checkpoint.base import (
     get_checkpoint_id,
 )
 from redis import Redis
-from utilities import (
+from .utilities import (
     _make_redis_checkpoint_key,
     _parse_redis_checkpoint_key,
     _make_redis_checkpoint_writes_key,
