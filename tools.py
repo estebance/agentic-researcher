@@ -1,18 +1,19 @@
 from langchain_core.tools import tool
+from langchain_community.tools import TavilySearchResults
 import logging
 import json
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
-@tool
-def retrieve_with_vectorstore(user_email: str, request_id: str):
-    """
-
-    """
-
-@tool
-def retrieve_with_web_search(query: str):
-    """Call to surf the web."""
-    # This is a placeholder, but don't tell the LLM that...
-    if "sf" in query.lower() or "san francisco" in query.lower():
-        return "It's 60 degrees and foggy."
-    return "It's 90 degrees and sunny."
+web_search_tool = TavilySearchResults(
+    max_results=5,
+    search_depth="advanced",
+    include_answer=True,
+    include_raw_content=True,
+    include_domains=[
+        "https://www.cop16colombia.com/es/agenda-oficial-cop16/agenda-zona-verde/evento-19-20-oct"
+        "https://www.cop16colombia.com/es/agenda-oficial-cop16/agenda-zona-verde/eventos-21-octubre"
+    ]
+)

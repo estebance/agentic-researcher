@@ -13,5 +13,6 @@ State: each graph execution creates a state that is passed between nodes in the 
 
 # ROADMAP
 
-- [ ] Project initialization
-- [ ] Integrate Tools (Supabase, Chroma)
+- [x] Project initialization
+- [x] Integrate Tools (PG)
+- [x] Agentic checkpointer
