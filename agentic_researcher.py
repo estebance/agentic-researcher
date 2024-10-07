@@ -1,3 +1,5 @@
+from tabnanny import process_tokens
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -12,7 +14,7 @@ from langgraph.graph import END, START, StateGraph, MessagesState
 from langgraph.prebuilt import ToolNode, tools_condition
 from datetime import datetime
 from IPython.display import Image, display
-from tools import web_search_tool
+from tools import web_search_tool, AskHuman
 from assistant import Assistant
 from state import State
 from utilities import create_tool_node_with_fallback, _print_event
@@ -21,15 +23,19 @@ from services.redis_checkpointer.redis_checkpointer import retrieve_sync_connect
 from services.redis_checkpointer.redis_saver import RedisSaver
 from langchain_core.messages import ToolMessage
 
+# fake node
+def ask_human(state):
+    pass
 
 #
 def should_continue(state):
     messages = state["messages"]
     last_message = messages[-1]
-    print(last_message)
     # If there is no function call, then we finish
     if not last_message.tool_calls:
         return "end"
+    elif last_message.tool_calls[0]["name"] == "AskHuman":
+        return "ask_human"
     # Otherwise if there is, we continue
     else:
         return "continue"
@@ -57,11 +63,12 @@ primary_assistant_prompt = ChatPromptTemplate.from_messages(
 # Begin! Reminder to ALWAYS respond with a valid json blob of a single action. Use tools if necessary. Respond directly if appropriate. Format is Action:```$JSON_BLOB```then Observation
 tools = [web_search_tool]
 #
-assistant_runnable = primary_assistant_prompt | model.bind_tools(tools)
+assistant_runnable = primary_assistant_prompt | model.bind_tools(tools + [AskHuman])
 builder = StateGraph(State)
 # Define nodes: these do the work
 builder.add_node("assistant", Assistant(assistant_runnable))
 builder.add_node("tools", create_tool_node_with_fallback(tools))
+builder.add_node("ask_human", ask_human)
 # Define edges: these determine how the control flow moves
 builder.add_edge(START, "assistant")
 builder.add_conditional_edges(
@@ -79,10 +86,12 @@ builder.add_conditional_edges(
     {
         # If `tools`, then we call the tool node.
         "continue": "tools",
+        "ask_human": "ask_human",
         # Otherwise we finish.
         "end": END,
     },
 )
+builder.add_edge("ask_human", "assistant")
 
 # builder.add_edge("assistant", "tools")
 # builder.add_conditional_edges(
@@ -91,44 +100,84 @@ builder.add_conditional_edges(
 # )
 builder.add_edge("tools", "assistant")
 
+
+def check_state(llm_graph, config, user_input):
+    current_state = llm_graph.get_state(config).values
+    print(current_state)
+    fulfill_message = True
+    if "messages" not in current_state:
+        # empty state continue
+        pass
+    else:
+        tool_call = current_state["messages"][-1].tool_calls[0]
+        if tool_call is not None and tool_call["name"] == "AskHuman":
+            tool_call_id =tool_call["id"]
+            tool_message = [
+                {"tool_call_id": tool_call_id, "type": "tool", "content": user_input}
+            ]
+            llm_graph.update_state(config, {"messages": tool_message}, as_node="ask_human")
+            fulfill_message = False
+    return llm_graph, fulfill_message
+
+def generate_graph():
+    with RedisSaver.from_conn_info(host="localhost", port=6379, db=0) as checkpointer:
+        llm_graph = builder.compile(
+            checkpointer=checkpointer,
+            interrupt_before=["ask_human"],
+        )
+        try:
+            image = Image(llm_graph.get_graph(xray=True).draw_mermaid_png())
+            with open("net_image1.png", "wb") as fout:
+                fout.write(image.data)
+            # display(image)
+        except Exception:
+            # This requires some extra dependencies and is optional
+            pass
 # The checkpointer lets the graph persist its state
 # this is a complete memory for the entire graph.
 # checkpointer =  retrieve_sync_connection_checkpointer()
-with RedisSaver.from_conn_info(host="localhost", port=6379, db=0) as checkpointer:
-    llm_graph = builder.compile(
-        checkpointer=checkpointer,
-        interrupt_before=["tools"],
-    )
-
-    config = {
-        "configurable": {
-            # The passenger_id is used in our flight tools to
-            # fetch the user's flight information
-            "user_id": "restebance",
-            # Checkpoints are accessed by thread_id
-            "thread_id": "12",
+def process_request(user_id, thread_id, human_message):
+    response = None
+    with RedisSaver.from_conn_info(host="localhost", port=6379, db=0) as checkpointer:
+        llm_graph = builder.compile(
+            checkpointer=checkpointer,
+            interrupt_before=["ask_human"],
+        )
+        config = {
+            "configurable": {
+                # The passenger_id is used in our flight tools to
+                # fetch the user's flight information
+                "user_id": "restebance",
+                # Checkpoints are accessed by thread_id
+                "thread_id": "19",
+            }
         }
-    }
-    message_inputs = [HumanMessage(content="a que hora es el evento Rangers at the heart of the 30x30 de la COP16?")]
-    _printed = set()
-    events = llm_graph.stream(
-        {"messages": message_inputs}, config, stream_mode="values"
-    )
-    # events = llm_graph.stream(
-    #     {"messages": ("user", "Si dale")}, config, stream_mode="values"
+        llm_graph, fulfill_message = check_state(llm_graph, config, human_message)
+        final_state = None
+        # if fulfill_message:
+        #     message_inputs = [HumanMessage(content=human_message)]
+        #     final_state = llm_graph.invoke(
+        #         {"messages": message_inputs}, config
+        #     )
+        # else:
+        #     final_state = llm_graph.invoke(
+        #         None, config
+        #     )
+        # response = final_state["messages"][-1].content
+        # print(response)
+        # events = llm_graph.stream(
+        #     {"messages": ("user", "Si dale")}, config, stream_mode="values"
+        # )
+
+
+    # user_input = input(
+    #     "Do you approve of the above actions? Type 'y' to continue;"
+    #     " otherwise, explain your requested changed.\n\n"
     # )
-    for event in events:
-        _print_event(event, _printed)
-
-    user_input = input(
-        "Do you approve of the above actions? Type 'y' to continue;"
-        " otherwise, explain your requested changed.\n\n"
-    )
-
-    events_b =  llm_graph.stream(None, config, stream_mode="values")
-    for event_b in events_b:
-        _print_event(event_b, _printed)
-
+    #
+    # events_b =  llm_graph.stream(None, config, stream_mode="values")
+    # for event_b in events_b:
+    #     _print_event(event_b, _printed)
     # result = llm_graph.invoke(
     #     None,
     #     config,
@@ -161,14 +210,17 @@ with RedisSaver.from_conn_info(host="localhost", port=6379, db=0) as checkpointe
     #     snapshot = llm_graph.get_state(config)
     #     print(snapshot)
 # check graph
-try:
-    image = Image(llm_graph.get_graph(xray=True).draw_mermaid_png())
-    with open("net_image1.png", "wb") as fout:
-        fout.write(image.data)
-    # display(image)
-except Exception:
-    # This requires some extra dependencies and is optional
-    pass
+# try:
+#     image = Image(llm_graph.get_graph(xray=True).draw_mermaid_png())
+#     with open("net_image1.png", "wb") as fout:
+#         fout.write(image.data)
+#     # display(image)
+# except Exception:
+#     # This requires some extra dependencies and is optional
+#     pass
+# process_request('restebance@gmail.com', '1234', human_message="a que hora es el evento Rangers at the heart of the 30x30 de la COP16?")
+# generate_graph()
+process_request('restebance@gmail.com', '1234', human_message="Si dale")
 
 
 
