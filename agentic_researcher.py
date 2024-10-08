@@ -6,7 +6,7 @@ load_dotenv()
 
 from langgraph.checkpoint.postgres import PostgresSaver
 from typing import Annotated, Literal, TypedDict
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage, AIMessage
 from langchain_anthropic import ChatAnthropic
 from langchain_core.prompts import ChatPromptTemplate
 from langgraph.checkpoint.memory import MemorySaver
@@ -105,19 +105,31 @@ def check_state(llm_graph, config, user_input):
     current_state = llm_graph.get_state(config).values
     print(current_state)
     fulfill_message = True
-    if "messages" not in current_state:
-        # empty state continue
-        pass
-    else:
-        tool_call = current_state["messages"][-1].tool_calls[0]
-        if tool_call is not None and tool_call["name"] == "AskHuman":
-            tool_call_id =tool_call["id"]
-            tool_message = [
-                {"tool_call_id": tool_call_id, "type": "tool", "content": user_input}
-            ]
-            llm_graph.update_state(config, {"messages": tool_message}, as_node="ask_human")
-            fulfill_message = False
+    if "messages" in current_state:
+        last_node = current_state["messages"][-1]
+        if isinstance(last_node, AIMessage) and last_node.tool_calls:
+            tool_call = last_node.tool_calls[-1]
+            if tool_call and tool_call["name"] == "AskHuman":
+                tool_call_id =tool_call["id"]
+                tool_message = [
+                    {"tool_call_id": tool_call_id, "type": "tool", "content": user_input}
+                ]
+                llm_graph.update_state(config, {"messages": tool_message}, as_node="ask_human")
+                fulfill_message = False
     return llm_graph, fulfill_message
+
+def retrieve_response(final_state):
+    print(f"Final state: {final_state}")
+    response = final_state["messages"][-1]
+    if isinstance(response, AIMessage) and response.tool_calls:
+        print(response.tool_calls)
+        tool_call = response.tool_calls[0]
+        print(tool_call)
+        if tool_call["name"] == "AskHuman":
+            response = tool_call["args"]["approval"]
+    else:
+        response = response.content
+    print(f"Final response: {response}")
 
 def generate_graph():
     with RedisSaver.from_conn_info(host="localhost", port=6379, db=0) as checkpointer:
@@ -149,20 +161,22 @@ def process_request(user_id, thread_id, human_message):
                 # fetch the user's flight information
                 "user_id": "restebance",
                 # Checkpoints are accessed by thread_id
-                "thread_id": "19",
+                "thread_id": "21",
             }
         }
+        # if the last intaction was a request to the user avoid insertion of new messages
         llm_graph, fulfill_message = check_state(llm_graph, config, human_message)
         final_state = None
-        # if fulfill_message:
-        #     message_inputs = [HumanMessage(content=human_message)]
-        #     final_state = llm_graph.invoke(
-        #         {"messages": message_inputs}, config
-        #     )
-        # else:
-        #     final_state = llm_graph.invoke(
-        #         None, config
-        #     )
+        if fulfill_message:
+            message_inputs = [HumanMessage(content=human_message)]
+            final_state = llm_graph.invoke(
+                {"messages": message_inputs}, config
+            )
+        else:
+            final_state = llm_graph.invoke(
+                None, config
+            )
+        retrieve_response(final_state)
         # response = final_state["messages"][-1].content
         # print(response)
         # events = llm_graph.stream(
@@ -220,7 +234,7 @@ def process_request(user_id, thread_id, human_message):
 #     pass
 # process_request('restebance@gmail.com', '1234', human_message="a que hora es el evento Rangers at the heart of the 30x30 de la COP16?")
 # generate_graph()
-process_request('restebance@gmail.com', '1234', human_message="Si dale")
+# process_request('restebance@gmail.com', '1234', human_message="No paila")
 
 
 
