@@ -130,6 +130,7 @@ def retrieve_response(final_state):
     else:
         response = response.content
     print(f"Final response: {response}")
+    return response
 
 def generate_graph():
     with RedisSaver.from_conn_info(host="localhost", port=6379, db=0) as checkpointer:
@@ -176,53 +177,9 @@ def process_request(user_id, thread_id, human_message):
             final_state = llm_graph.invoke(
                 None, config
             )
-        retrieve_response(final_state)
-        # response = final_state["messages"][-1].content
-        # print(response)
-        # events = llm_graph.stream(
-        #     {"messages": ("user", "Si dale")}, config, stream_mode="values"
-        # )
-
-
-    # user_input = input(
-    #     "Do you approve of the above actions? Type 'y' to continue;"
-    #     " otherwise, explain your requested changed.\n\n"
-    # )
-    #
-    # events_b =  llm_graph.stream(None, config, stream_mode="values")
-    # for event_b in events_b:
-    #     _print_event(event_b, _printed)
-    # result = llm_graph.invoke(
-    #     None,
-    #     config,
-    # )
-    #
-    # # snapshot = llm_graph.get_state(config)
-    # # while snapshot.next:
-    #     # We have an interrupt! The agent is trying to use a tool, and the user can approve or deny it
-    #     # Note: This code is all outside of your graph. Typically, you would stream the output to a UI.
-    #     # Then, you would have the frontend trigger a new run via an API call when the user has provided input.
-    #
-    #     if user_input.strip() == "y":
-    #         # Just continue
-    #
-    #         print(result)
-    #     else:
-    #         # Satisfy the tool invocation by
-    #         # providing instructions on the requested changes / change of mind
-    #         result = llm_graph.invoke(
-    #             {
-    #                 "messages": [
-    #                     ToolMessage(
-    #                         tool_call_id=event["messages"][-1].tool_calls[0]["id"],
-    #                         content=f"API call denied by user. Reasoning: '{user_input}'. Continue assisting, accounting for the user's input.",
-    #                     )
-    #                 ]
-    #             },
-    #             config,
-    #         )
-    #     snapshot = llm_graph.get_state(config)
-    #     print(snapshot)
+        response = retrieve_response(final_state)
+        print(f"Final response: ", response)
+        return response
 # check graph
 # try:
 #     image = Image(llm_graph.get_graph(xray=True).draw_mermaid_png())

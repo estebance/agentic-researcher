@@ -1,8 +1,7 @@
 from fastapi import FastAPI
 from dotenv import load_dotenv
 from pydantic import BaseModel
-from agentic_researcher import llm_graph
-from utilities import _print_event
+from agentic_researcher import process_request
 
 load_dotenv()
 
@@ -10,7 +9,7 @@ app = FastAPI()
 
 
 class InteractionData(BaseModel):
-    question: str
+    message: str
     user_id: str
     thread_id: str
 
@@ -22,28 +21,12 @@ async def root():
 @app.post("/interact")
 async def interact(interaction_request: InteractionData):
     request_body = interaction_request.model_dump()
-    config = {
-        "configurable": {
-            # The passenger_id is used in our flight tools to
-            # fetch the user's flight information
-            "user_id": request_body["user_id"],
-            # Checkpoints are accessed by thread_id
-            "thread_id": request_body["thread_id"],
-        }
-    }
+    user_id = request_body["user_id"]
+    thread_id = request_body["thread_id"]
+    message = request_body["message"]
     _printed = set()
-    events = llm_graph.stream(
-        {"messages": ("user", request_body["question"])}, config, stream_mode="values"
-    )
-    for event in events:
-        _print_event(event, _printed)
-        if "__end__" in event:
-            print("----")
-            print(event)
-            print("----")
-    # _printed = set()
-    # for question in questions:
-    #     events = graph.stream(
-    #         {"messages": ("user", question)}, config, stream_mode="values"
-    #     )
-    return {"message": "Hello World"}
+    response = process_request(user_id, thread_id, message)
+
+    return {"data": {
+        "message": response
+    }}
