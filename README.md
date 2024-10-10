@@ -15,8 +15,8 @@ As mentioned in the paper “corrective Retrieval Augmented Generation” Large 
 
 # HOW TO
 
-[RedisCheckPointer](https://langchain-ai.github.io/langgraph/how-tos/persistence_redis)
-[CRAG](https://arxiv.org/pdf/2401.15884)
+- [RedisCheckPointer](https://langchain-ai.github.io/langgraph/how-tos/persistence_redis)
+- [CRAG](https://arxiv.org/pdf/2401.15884)
 
 
 # ROADMAP
