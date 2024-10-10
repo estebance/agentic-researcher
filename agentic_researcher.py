@@ -6,7 +6,7 @@ load_dotenv()
 
 from langgraph.checkpoint.postgres import PostgresSaver
 from typing import Annotated, Literal, TypedDict
-from langchain_core.messages import HumanMessage, AIMessage
+from langchain_core.messages import HumanMessage, AIMessage, RemoveMessage
 from langchain_anthropic import ChatAnthropic
 from langchain_core.prompts import ChatPromptTemplate
 from langgraph.checkpoint.memory import MemorySaver
@@ -39,6 +39,18 @@ def should_continue(state):
     # Otherwise if there is, we continue
     else:
         return "continue"
+
+
+def rewrite_chat_question(state: State):
+    rewritten_question_message = (f"Given a chat history and the latest user question \n\
+        which might reference context in the chat history, formulate a standalone question\n\
+        which can be understood without the chat history. Do NOT answer the question,\n\
+        just reformulate it if needed and otherwise return it as is."
+    )
+
+    messages = state["messages"] + [HumanMessage(content=rewritten_question_message)]
+    response = model.invoke(messages)
+    return {"written_question": response.content, "messages": messages}
 
 # Call the model
 model = ChatAnthropic(model="claude-3-5-sonnet-20240620", temperature=0)
