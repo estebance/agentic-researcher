@@ -16,3 +16,5 @@ State: each graph execution creates a state that is passed between nodes in the 
 - [x] Project initialization
 - [x] Integrate Tools (PG)
 - [x] Agentic checkpointer
+- [x] Integrate Endpoint
+- [ ] Test CRAG (Corrective RAG)
