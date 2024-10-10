@@ -8,7 +8,7 @@ class GradeDocuments(BaseModel):
         description="Documents are relevant to the question, 'yes' or 'no'"
     )
 
-class Grader:
+class RetrievalGrader:
 
     def __init__(self):
         self.model = ChatAnthropic(model="claude-3-5-sonnet-20240620", temperature=0)
@@ -24,6 +24,6 @@ class Grader:
         )
 
 
-    def gen_retrieval_grader(self):
+    def gen_retrieval_grader_chain(self):
         retrieval_grader = self.grade_prompt | self.structured_llm_grader
         return retrieval_grader
