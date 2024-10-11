@@ -11,7 +11,7 @@ from langchain_anthropic import ChatAnthropic
 load_dotenv()
 
 class AskHuman(BaseModel):
-    """Wait for human approval to use any sensitive tool"""
+    """Ask the human for approval before try to use any other tool"""
     approval: str
 
 

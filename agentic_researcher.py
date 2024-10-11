@@ -165,7 +165,7 @@ def process_request(user_id, thread_id, human_message):
                 # fetch the user's flight information
                 "user_id": "pep2e",
                 # Checkpoints are accessed by thread_id
-                "thread_id": "1235",
+                "thread_id": "129317",
             }
         }
         # if the last intaction was a request to the user avoid insertion of new messages
@@ -194,8 +194,8 @@ def process_request(user_id, thread_id, human_message):
 #     pass
 
 generate_graph()
-process_request('restebance@gmail.com', '1234', human_message="a que hora es el evento Rangers at the heart of the 30x30 de la COP16?")
-# process_request('restebance@gmail.com', '1234', human_message="No paila")
+# process_request('restebance@gmail.com', '133', human_message="que es la COP16?")
+process_request('restebance@gmail.com', '1234', human_message="si dale")
 
 
 
