@@ -14,7 +14,7 @@ from langgraph.graph import END, START, StateGraph, MessagesState
 from langgraph.prebuilt import ToolNode, tools_condition
 from datetime import datetime
 from IPython.display import Image, display
-from tools import web_search_tool, AskHuman
+from tools import web_search_tool, AskHuman, reformulate_question
 from assistant import Assistant
 from state import State
 from utilities import create_tool_node_with_fallback, _print_event
@@ -41,17 +41,6 @@ def should_continue(state):
         return "continue"
 
 
-def rewrite_chat_question(state: State):
-    rewritten_question_message = (f"Given a chat history and the latest user question \n\
-        which might reference context in the chat history, formulate a standalone question\n\
-        which can be understood without the chat history. Do NOT answer the question,\n\
-        just reformulate it if needed and otherwise return it as is."
-    )
-
-    messages = state["messages"] + [HumanMessage(content=rewritten_question_message)]
-    response = model.invoke(messages)
-    return {"written_question": response.content, "messages": messages}
-
 # Call the model
 model = ChatAnthropic(model="claude-3-5-sonnet-20240620", temperature=0)
 
@@ -62,7 +51,7 @@ primary_assistant_prompt = ChatPromptTemplate.from_messages(
             "system",
             """
                 You are an experienced AI researcher expert in topics culture, history, enviromental stuff.
-                Use the provided tools to search for information about Colombian culture, history and the COP16 event
+                Use the provided sensitive_tools and tools to search for information about Colombian culture, history and the COP16 event
                 If a search comes up empty, expand your search before giving up.
                 Your responses include no more than three sentences.
                 "\n\nCurrent user:\n<User>\n{user_info}\n</User>"
@@ -73,13 +62,15 @@ primary_assistant_prompt = ChatPromptTemplate.from_messages(
 ).partial(time=datetime.now())
 # Partial such a good way to index information
 # Begin! Reminder to ALWAYS respond with a valid json blob of a single action. Use tools if necessary. Respond directly if appropriate. Format is Action:```$JSON_BLOB```then Observation
-tools = [web_search_tool]
+sensitive_tools = [web_search_tool]
+tools = [reformulate_question]
 #
-assistant_runnable = primary_assistant_prompt | model.bind_tools(tools + [AskHuman])
+assistant_runnable = primary_assistant_prompt | model.bind_tools(sensitive_tools + [AskHuman])
 builder = StateGraph(State)
 # Define nodes: these do the work
 builder.add_node("assistant", Assistant(assistant_runnable))
-builder.add_node("tools", create_tool_node_with_fallback(tools))
+# builder.add_node("tools", create_tool_node_with_fallback(tools))
+builder.add_node("sensitive_tools", create_tool_node_with_fallback(sensitive_tools))
 builder.add_node("ask_human", ask_human)
 # Define edges: these determine how the control flow moves
 builder.add_edge(START, "assistant")
@@ -97,12 +88,13 @@ builder.add_conditional_edges(
     # Based on which one it matches, that node will then be called.
     {
         # If `tools`, then we call the tool node.
-        "continue": "tools",
+        "continue": "sensitive_tools",
         "ask_human": "ask_human",
         # Otherwise we finish.
         "end": END,
     },
 )
+# builder.add_edge("assistant", "tools")
 builder.add_edge("ask_human", "assistant")
 
 # builder.add_edge("assistant", "tools")
@@ -110,15 +102,15 @@ builder.add_edge("ask_human", "assistant")
 #     "assistant",
 #     tools_condition,
 # )
-builder.add_edge("tools", "assistant")
+builder.add_edge("sensitive_tools", "assistant")
 
 
 def check_state(llm_graph, config, user_input):
     current_state = llm_graph.get_state(config).values
-    print(current_state)
     fulfill_message = True
     if "messages" in current_state:
         last_node = current_state["messages"][-1]
+        print(last_node)
         if isinstance(last_node, AIMessage) and last_node.tool_calls:
             tool_call = last_node.tool_calls[-1]
             if tool_call and tool_call["name"] == "AskHuman":
@@ -131,7 +123,7 @@ def check_state(llm_graph, config, user_input):
     return llm_graph, fulfill_message
 
 def retrieve_response(final_state):
-    print(f"Final state: {final_state}")
+    # print(f"Final state: {final_state}")
     response = final_state["messages"][-1]
     if isinstance(response, AIMessage) and response.tool_calls:
         print(response.tool_calls)
@@ -141,7 +133,6 @@ def retrieve_response(final_state):
             response = tool_call["args"]["approval"]
     else:
         response = response.content
-    print(f"Final response: {response}")
     return response
 
 def generate_graph():
@@ -163,7 +154,7 @@ def generate_graph():
 # checkpointer =  retrieve_sync_connection_checkpointer()
 def process_request(user_id, thread_id, human_message):
     response = None
-    with RedisSaver.from_conn_info(host="localhost", port=6379, db=0) as checkpointer:
+    with RedisSaver.from_conn_info(host="localhost", port=6379, db=1) as checkpointer:
         llm_graph = builder.compile(
             checkpointer=checkpointer,
             interrupt_before=["ask_human"],
@@ -172,9 +163,9 @@ def process_request(user_id, thread_id, human_message):
             "configurable": {
                 # The passenger_id is used in our flight tools to
                 # fetch the user's flight information
-                "user_id": "restebance",
+                "user_id": "pep2e",
                 # Checkpoints are accessed by thread_id
-                "thread_id": "21",
+                "thread_id": "1235",
             }
         }
         # if the last intaction was a request to the user avoid insertion of new messages
@@ -201,8 +192,9 @@ def process_request(user_id, thread_id, human_message):
 # except Exception:
 #     # This requires some extra dependencies and is optional
 #     pass
-# process_request('restebance@gmail.com', '1234', human_message="a que hora es el evento Rangers at the heart of the 30x30 de la COP16?")
-# generate_graph()
+
+generate_graph()
+process_request('restebance@gmail.com', '1234', human_message="a que hora es el evento Rangers at the heart of the 30x30 de la COP16?")
 # process_request('restebance@gmail.com', '1234', human_message="No paila")
 
 
