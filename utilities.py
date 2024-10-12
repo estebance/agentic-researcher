@@ -38,3 +38,5 @@ def _print_event(event: dict, _printed: set, max_length=1500):
                 msg_repr = msg_repr[:max_length] + " ... (truncated)"
             print(msg_repr)
             _printed.add(message.id)
+
+import uuid

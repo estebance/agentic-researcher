@@ -14,7 +14,7 @@ from langgraph.graph import END, START, StateGraph, MessagesState
 from langgraph.prebuilt import ToolNode, tools_condition
 from datetime import datetime
 from IPython.display import Image, display
-from tools import web_search_tool, AskHuman, reformulate_question
+from tools import web_search_tool, AskHuman
 from assistant import Assistant
 from state import State
 from utilities import create_tool_node_with_fallback, _print_event
@@ -22,6 +22,7 @@ from utilities import create_tool_node_with_fallback, _print_event
 from services.redis_checkpointer.redis_checkpointer import retrieve_sync_connection_checkpointer
 from services.redis_checkpointer.redis_saver import RedisSaver
 from langchain_core.messages import ToolMessage
+from question_rewriter import invoke_rewriter_chain
 
 # fake node
 def ask_human(state):
@@ -41,6 +42,20 @@ def should_continue(state):
         return "continue"
 
 
+# def rewrite_question(state):
+#     messages = state["messages"]
+#     if messages:
+#         rewriter_chain = invoke_rewriter_chain(messages)
+#         rewriter_message = """Given a chat history and the latest user question \n\
+#             which might reference context in the chat history, formulate a standalone question\n\
+#             which can be understood without the chat history. Do NOT answer the question,\n\
+#             just reformulate it if needed and otherwise return it as is and proceed."""
+#         formulated_question = rewriter_chain.invoke({"input": rewriter_message})
+#         print(formulated_question)
+#         messages = state["messages"] + [HumanMessage(content=formulated_question.question)]
+#         return {"formulated_question": formulated_question, "messages": messages}
+#     else:
+#         pass
 # Call the model
 model = ChatAnthropic(model="claude-3-5-sonnet-20240620", temperature=0)
 
@@ -53,6 +68,7 @@ primary_assistant_prompt = ChatPromptTemplate.from_messages(
                 You are an experienced AI researcher expert in topics culture, history, enviromental stuff.
                 Use the provided sensitive_tools and tools to search for information about Colombian culture, history and the COP16 event
                 If a search comes up empty, expand your search before giving up.
+                You can rewrite the question based on the chat history if neccesary  just once.
                 Your responses include no more than three sentences.
                 "\n\nCurrent user:\n<User>\n{user_info}\n</User>"
             """
@@ -63,17 +79,17 @@ primary_assistant_prompt = ChatPromptTemplate.from_messages(
 # Partial such a good way to index information
 # Begin! Reminder to ALWAYS respond with a valid json blob of a single action. Use tools if necessary. Respond directly if appropriate. Format is Action:```$JSON_BLOB```then Observation
 sensitive_tools = [web_search_tool]
-tools = [reformulate_question]
 #
 assistant_runnable = primary_assistant_prompt | model.bind_tools(sensitive_tools + [AskHuman])
 builder = StateGraph(State)
 # Define nodes: these do the work
 builder.add_node("assistant", Assistant(assistant_runnable))
-# builder.add_node("tools", create_tool_node_with_fallback(tools))
+# builder.add_node("rewrite_question", rewrite_question)
 builder.add_node("sensitive_tools", create_tool_node_with_fallback(sensitive_tools))
 builder.add_node("ask_human", ask_human)
 # Define edges: these determine how the control flow moves
 builder.add_edge(START, "assistant")
+# builder.add_edge("assistant", "rewrite_question")
 builder.add_conditional_edges(
     # First, we define the start node. We use `agent`.
     # This means these are the edges taken after the `agent` node is called.
@@ -94,7 +110,7 @@ builder.add_conditional_edges(
         "end": END,
     },
 )
-# builder.add_edge("assistant", "tools")
+# builder.add_edge("assistant", "rewrite_question")
 builder.add_edge("ask_human", "assistant")
 
 # builder.add_edge("assistant", "tools")
@@ -102,6 +118,7 @@ builder.add_edge("ask_human", "assistant")
 #     "assistant",
 #     tools_condition,
 # )
+# builder.add_edge("rewrite_question", "assistant")
 builder.add_edge("sensitive_tools", "assistant")
 
 
@@ -163,9 +180,9 @@ def process_request(user_id, thread_id, human_message):
             "configurable": {
                 # The passenger_id is used in our flight tools to
                 # fetch the user's flight information
-                "user_id": "pep2e",
-                # Checkpoints are accessed by thread_id
-                "thread_id": "129317",
+                "user_id": "pep223e23",
+                # Checkpoints ar2e accessed by thread_id
+                "thread_id": "1322323367899",
             }
         }
         # if the last intaction was a request to the user avoid insertion of new messages
@@ -194,7 +211,7 @@ def process_request(user_id, thread_id, human_message):
 #     pass
 
 generate_graph()
-# process_request('restebance@gmail.com', '133', human_message="que es la COP16?")
+# process_request('restebance@gmail.com', '133', human_message="que es la cop 16?")
 process_request('restebance@gmail.com', '1234', human_message="si dale")
 
 
