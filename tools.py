@@ -13,7 +13,7 @@ from typing_extensions import Annotated
 load_dotenv()
 
 class AskHuman(BaseModel):
-    """Ask the human for approval before try to rewrite the question"""
+    """A tool to let the user approve the usage of any other tools"""
     approval: str
 
 

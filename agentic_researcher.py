@@ -6,9 +6,10 @@ load_dotenv()
 
 from langgraph.checkpoint.postgres import PostgresSaver
 from typing import Annotated, Literal, TypedDict
-from langchain_core.messages import HumanMessage, AIMessage, RemoveMessage
+from langchain_core.messages import HumanMessage, AIMessage, filter_messages
 from langchain_anthropic import ChatAnthropic
 from langchain_core.prompts import ChatPromptTemplate
+
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph, MessagesState
 from langgraph.prebuilt import ToolNode, tools_condition
@@ -18,6 +19,9 @@ from tools import web_search_tool, AskHuman
 from assistant import Assistant
 from state import State
 from utilities import create_tool_node_with_fallback, _print_event
+# from rewriter.rewriter import rewriter_node
+from rewriter.rewriter_b import rewriter_node
+from rewriter.router import question_router
 # from services.checkpointer import sync_checkpointer, retrieve_sync_connection_checkpointer, retrieve_async_connection_checkpointer
 from services.redis_checkpointer.redis_checkpointer import retrieve_sync_connection_checkpointer
 from services.redis_checkpointer.redis_saver import RedisSaver
@@ -28,6 +32,62 @@ from question_rewriter import invoke_rewriter_chain
 def ask_human(state):
     pass
 
+
+def rewriter(state):
+    """
+    Route question to web search or RAG.
+
+    Args:
+        state (dict): The current graph state
+
+    Returns:
+        str: Next node to call
+    """
+    messages = state["messages"]
+    filter_messages = []
+    for message in messages:
+        if isinstance(message, AIMessage) and message.tool_calls:
+            print(message.content[0]['text'])
+            filter_messages.append(AIMessage(content=message.content[0]['text']))
+        elif isinstance(message, AIMessage):
+            print(message.content)
+            filter_messages.append(AIMessage(content=message.content))
+        elif isinstance(message, HumanMessage):
+            filter_messages.append(message)
+    # new_messages = filter_messages(state["messages"], include_types="human")
+    new_question = rewriter_node.invoke({"messages": filter_messages})
+    # print(new_question)
+    new_message = [
+        {"type": "human", "content": new_question.content}
+    ]
+    # print(new_message)
+    return {"formulated_question": new_question, "messages": new_message}
+
+def route_question(state):
+    """
+    Route question to web search or RAG.
+
+    Args:
+        state (dict): The current graph state
+
+    Returns:
+        str: Next node to call
+    """
+
+    print("---ROUTE QUESTION---")
+    messages = state["messages"]
+    last_message = messages[-1]
+    print(last_message)
+    question = last_message.content
+    source = question_router.invoke({"question": question})
+    print(source)
+    if source.datasource == "rewriter":
+        print("---ROUTE QUESTION TO REWRITER---")
+        return "rewriter"
+    elif source.datasource == "assistant":
+        print("---ROUTE QUESTION TO assistant---")
+        # add question as human question
+        return "assistant"
 #
 def should_continue(state):
     messages = state["messages"]
@@ -66,9 +126,9 @@ primary_assistant_prompt = ChatPromptTemplate.from_messages(
             "system",
             """
                 You are an experienced AI researcher expert in topics culture, history, enviromental stuff.
-                Use the provided sensitive_tools and tools to search for information about Colombian culture, history and the COP16 event
+                Use the provided tools to search for information about Colombian culture, history and the COP16 event
+                ALWAYS ask for permission to use a sensitive_tool.
                 If a search comes up empty, expand your search before giving up.
-                You can rewrite the question based on the chat history if neccesary  just once.
                 Your responses include no more than three sentences.
                 "\n\nCurrent user:\n<User>\n{user_info}\n</User>"
             """
@@ -80,16 +140,25 @@ primary_assistant_prompt = ChatPromptTemplate.from_messages(
 # Begin! Reminder to ALWAYS respond with a valid json blob of a single action. Use tools if necessary. Respond directly if appropriate. Format is Action:```$JSON_BLOB```then Observation
 sensitive_tools = [web_search_tool]
 #
-assistant_runnable = primary_assistant_prompt | model.bind_tools(sensitive_tools + [AskHuman])
+assistant_runnable = primary_assistant_prompt | model.bind_tools([AskHuman] + sensitive_tools)
 builder = StateGraph(State)
 # Define nodes: these do the work
 builder.add_node("assistant", Assistant(assistant_runnable))
-# builder.add_node("rewrite_question", rewrite_question)
+builder.add_node("rewriter", rewriter)
 builder.add_node("sensitive_tools", create_tool_node_with_fallback(sensitive_tools))
 builder.add_node("ask_human", ask_human)
 # Define edges: these determine how the control flow moves
-builder.add_edge(START, "assistant")
-# builder.add_edge("assistant", "rewrite_question")
+builder.add_conditional_edges(
+    START,
+    route_question,
+    {
+        "rewriter": "rewriter",
+        "assistant": "assistant",
+    },
+)
+
+# builder.add_edge(START, "assistant")
+# builder.add_edge("assistant", "rewriter")
 builder.add_conditional_edges(
     # First, we define the start node. We use `agent`.
     # This means these are the edges taken after the `agent` node is called.
@@ -110,7 +179,7 @@ builder.add_conditional_edges(
         "end": END,
     },
 )
-# builder.add_edge("assistant", "rewrite_question")
+builder.add_edge("rewriter", "assistant")
 builder.add_edge("ask_human", "assistant")
 
 # builder.add_edge("assistant", "tools")
@@ -118,7 +187,6 @@ builder.add_edge("ask_human", "assistant")
 #     "assistant",
 #     tools_condition,
 # )
-# builder.add_edge("rewrite_question", "assistant")
 builder.add_edge("sensitive_tools", "assistant")
 
 
@@ -180,9 +248,9 @@ def process_request(user_id, thread_id, human_message):
             "configurable": {
                 # The passenger_id is used in our flight tools to
                 # fetch the user's flight information
-                "user_id": "pep223e23",
-                # Checkpoints ar2e accessed by thread_id
-                "thread_id": "1322323367899",
+                "user_id": "pep223e2342343",
+                # Checkpoints ar2e acqcessed by thread_id
+                "thread_id": "22323qwq23423234534523432342333323343",
             }
         }
         # if the last intaction was a request to the user avoid insertion of new messages
@@ -212,8 +280,9 @@ def process_request(user_id, thread_id, human_message):
 
 generate_graph()
 # process_request('restebance@gmail.com', '133', human_message="que es la cop 16?")
-process_request('restebance@gmail.com', '1234', human_message="si dale")
-
+# process_request('restebance@gmail.com', '133', human_message="que eventos tiene?")
+# process_request('restebance@gmail.com', '1234', human_message="donde se organiza la cop 16?")
+# process_request('restebance@gmail.com', '1234', human_message="si dale")
 
 
 
