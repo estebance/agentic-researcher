@@ -5,6 +5,7 @@ from .graph_state import GraphState
 from .question_rewriter import QuestionRewriter
 from .retrieval_grader import RetrievalGrader
 from .tools import retrieve_web_search_tool, retrieve_bedrock_kdb
+from .nodes import rewrite
 from langgraph.graph import END, StateGraph, START
 from IPython.display import Image
 
@@ -43,10 +44,12 @@ def generate(state):
     print("---GENERATE---")
     question = state["question"]
     documents = state["documents"]
+    # TODO CHECK THE IDEAL MANAGEMENT FROM THE STATE PERSPECTIVE 
+    language = "es"
     # RAG generation
     generator = Generator()
     rag_chain = generator.gen_rag_chain()
-    generation = rag_chain.invoke({"context": documents, "question": question})
+    generation = rag_chain.invoke({"context": documents, "question": question, "language": language})
     return {"documents": documents, "question": question, "generation": generation}
 
 
@@ -164,6 +167,8 @@ def decide_to_generate(state):
 # COMPILE THE GRAPH
 workflow = StateGraph(GraphState)
 # Define the nodes
+# (TODO) SEEMS TO BE WORKING
+workflow.add_node("rewrite", rewrite)
 workflow.add_node("retrieve", retrieve)  # retrieve
 workflow.add_node("grade_documents", grade_documents)  # grade documents
 workflow.add_node("generate", generate)  # generatae
@@ -171,7 +176,9 @@ workflow.add_node("transform_query", transform_query)  # transform_query
 workflow.add_node("web_search_node", web_search)  # web search
 
 # Build graph
-workflow.add_edge(START, "retrieve")
+workflow.add_edge(START, "rewrite")
+workflow.add_edge("rewrite", "retrieve")
+# workflow.add_edge(START, "retrieve")
 workflow.add_edge("retrieve", "grade_documents")
 workflow.add_conditional_edges(
     "grade_documents",
@@ -184,6 +191,7 @@ workflow.add_conditional_edges(
 workflow.add_edge("transform_query", "web_search_node")
 workflow.add_edge("web_search_node", "generate")
 workflow.add_edge("generate", END)
+
 
 # Compile
 app = workflow.compile()
