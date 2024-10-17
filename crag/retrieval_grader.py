@@ -10,8 +10,8 @@ class GradeDocuments(BaseModel):
 
 class RetrievalGrader:
 
-    def __init__(self):
-        self.model = ChatAnthropic(model="claude-3-5-sonnet-20240620", temperature=0)
+    def __init__(self, model):
+        self.model = model
         self.structured_llm_grader = self.model.with_structured_output(GradeDocuments)
         system = """You are a grader assessing relevance of a retrieved document to an user question. \n
             If the document contains keyword(s) or semantic meaning related to the question, grade it as relevant. \n

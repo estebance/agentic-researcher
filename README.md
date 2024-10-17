@@ -26,4 +26,28 @@ As mentioned in the paper “corrective Retrieval Augmented Generation” Large 
 
 # Install
 
-TODO
+1. The required python version is  ```python3.12```, you will find all the details by checking the ```pyproject.toml``` file.
+2. Install poetry by following these [instructions](https://python-poetry.org/docs/)
+3. After install poetry you can install the dependencies by running
+    ```
+        poetry install
+    ````
+4. Check the ```params.json```, because this is an initial version of this tool we only support AWS BEDROCK
+    ```
+        "provider": "AWS",
+        "model_id": "",
+        "knowledge_base_id": ""
+    ```
+    Provide the values from your AWS Account
+5. Copy the ```.env.example``` into a new file ```.env``` and replace the values
+    ```
+        ANTHROPIC_API_KEY="" (If you are using Anthropic)
+        REDIS_ENDPOINT="127.0.0.1" (Your redis endpoint running)
+        TAVILY_API_KEY="<your-tavily-api-key>"
+        LANGSMITH_TRACING="true"
+        LANGSMITH_API_KEY="<your langsmith api key>"
+        LANGCHAIN_PROJECT="<your-ideal-project-name>"
+        # AWS KDB and BEDROCK MODELS
+        AWS_PROFILE="<your aws profile>"
+        AWS_DEFAULT_REGION="us-east-1"
+    ```

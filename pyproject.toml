@@ -11,6 +11,7 @@ python = "^3.12"
 langchain-core = "^0.3.10"
 langchain = "^0.3.3"
 langchain-aws = "^0.2.2"
+python-dotenv = "^1.0.1"
 
 
 [build-system]
