@@ -1,29 +1,38 @@
 ### Question Re-writer
 from langchain_anthropic import ChatAnthropic
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from pydantic import BaseModel, Field
 from langchain_core.output_parsers import StrOutputParser
 
 
+class GeneratorQuestion(BaseModel):
+    """generated question"""
+    question: str = Field(
+        description="generated question"
+    )
+
 class QuestionRewriter:
 
-    def __init__(self):
-        self.model = ChatAnthropic(model="claude-3-5-sonnet-20240620", temperature=0)
-        system = """
-            You a question re-writer that converts an input question to a better version that is optimized \n
-            for web search. Look at the input and try to reason about the underlying semantic intent / meaning.\n
-            only return the converted question no additional details must be included
-        """
-        self.rewrite_prompt = ChatPromptTemplate.from_messages(
+    def __init__(self, model):
+        self.model = model
+
+    def gen_rewriter_chain(self):
+        structured_llm = self.model.with_structured_output(GeneratorQuestion)
+        prompt = ChatPromptTemplate.from_messages(
             [
-                ("system", system),
-                ("human", "Here is the initial question: \n\n {question} \n Formulate an improved question."),
+                (
+                    "system",
+                    """
+                        Given a chat history and the latest user question \n\
+                        which might reference context in the chat history, formulate a standalone question\n\
+                        which can be understood without the chat history. Do NOT answer the question,\n\
+                        just reformulate it if needed and otherwise return it as is and proceed. \n\
+                        Do NOT provide explanations just return the question""",
+                ),
+                MessagesPlaceholder(variable_name="messages"),
             ]
         )
-
-
-    def gen_question_rewriter_chain(self):
-        question_rewriter = self.rewrite_prompt | self.model | StrOutputParser()
-        return question_rewriter
-        # question_rewriter.invoke({"question": question})
+        rewriter_node =  prompt | structured_llm
+        return rewriter_node
 
 

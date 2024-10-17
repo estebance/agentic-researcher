@@ -6,8 +6,8 @@ from langchain.chains.combine_documents import create_stuff_documents_chain
 
 class Generator:
 
-    def __init__(self):
-        self.model = ChatAnthropic(model="claude-3-5-sonnet-20240620", temperature=0)
+    def __init__(self, model):
+        self.model = model
         system_prompt = """
             You are an assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question.\n
             If you don't know the answer, just say that you don't know. Use three sentences maximum and keep the answer concise.\n
