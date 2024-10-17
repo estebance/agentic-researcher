@@ -5,8 +5,6 @@ load_dotenv()
 from langchain_core.messages import HumanMessage
 from crag.crag import workflow
 from services.redis_checkpointer.redis_saver import RedisSaver
-
-
 # The checkpointer lets the graph persist its state
 # this is a complete memory for the entire graph.
 def process_request_crag(user_id, thread_id, human_message):
