@@ -39,6 +39,8 @@ As mentioned in the paper “corrective Retrieval Augmented Generation” Large 
         "knowledge_base_id": ""
     ```
     Provide the values from your AWS Account
+    Anthropic ref ```"model_id": "claude-3-5-sonnet-20240620" ```
+
 5. Copy the ```.env.example``` into a new file ```.env``` and replace the values
     ```
         ANTHROPIC_API_KEY="" (If you are using Anthropic)

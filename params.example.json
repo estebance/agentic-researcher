@@ -1,0 +1,5 @@
+{
+    "provider": "AWS",
+    "model_id": "<YOUR BEDROCK MODEL ID>",
+    "knowledge_base_id": "<YOUR BEDROCK KNOWLEDGE BASE ID>"
+}

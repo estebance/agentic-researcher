@@ -4,6 +4,7 @@ load_dotenv()
 
 from langchain_core.messages import HumanMessage
 from langchain_anthropic import ChatAnthropic
+from langchain_aws import ChatBedrock
 from crag.workflow import WorkflowGraph
 from services.redis_checkpointer.redis_saver import RedisSaver
 from config import retrieve_parameters
@@ -16,7 +17,8 @@ def process_request_crag(user_id, thread_id, human_message):
 
     config_parameters = retrieve_parameters()
     print(config_parameters)
-    model = ChatAnthropic(model=config_parameters.model_id, temperature=0)
+    # model = ChatAnthropic(model=config_parameters.model_id, temperature=0)
+    model = ChatBedrock(model_id=config_parameters.model_id, temperature=0)
     # LOAD CONFIG THEN BUILD WORKFLOW AND INVOKE
     graph = WorkflowGraph(model, config_parameters.knowledge_base_id)
     workflow = graph.workflow
@@ -42,4 +44,4 @@ def process_request_crag(user_id, thread_id, human_message):
         return final_state["generation"]
 
 # retrieve_parameters()
-process_request_crag('123', '123', "Hola")
+# process_request_crag('123', '123', "Hola")
