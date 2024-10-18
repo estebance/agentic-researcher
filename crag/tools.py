@@ -1,6 +1,7 @@
 from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_community.retrievers import AmazonKnowledgeBasesRetriever
 
+# TODO check code to provide URLs and retrieve information only from them
 def  retrieve_web_search_tool(max_number_of_resources=3):
     web_search_tool = TavilySearchResults(k=max_number_of_resources)
     return web_search_tool

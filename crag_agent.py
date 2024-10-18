@@ -43,5 +43,20 @@ def process_request_crag(user_id, thread_id, human_message):
         print(final_state['generation'])
         return final_state["generation"]
 
-# retrieve_parameters()
-# process_request_crag('123', '123', "Hola")
+
+def process_request_crag_as_team(message):
+    config_parameters = retrieve_parameters()
+    print(config_parameters)
+    # model = ChatAnthropic(model=config_parameters.model_id, temperature=0)
+    model = ChatBedrock(model_id=config_parameters.model_id, temperature=0)
+    # LOAD CONFIG THEN BUILD WORKFLOW AND INVOKE
+    graph = WorkflowGraph(model, config_parameters.knowledge_base_id)
+    workflow = graph.workflow
+    # OH MY CAT there is not checkpointer here
+    llm_app = workflow.compile()
+    # each interaction enters as HUMAN
+    message_inputs = [HumanMessage(content=message)]
+    final_state = llm_app.invoke(
+        {"messages": message_inputs}
+    )
+    return final_state
