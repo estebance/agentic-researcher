@@ -32,7 +32,7 @@ As mentioned in the paper “corrective Retrieval Augmented Generation” Large 
     ```
         poetry install
     ````
-4. Check the ```params.json```, because this is an initial version of this tool we only support AWS BEDROCK
+4. Check the ```params.example.json```, because this is an initial version of this tool we only support AWS BEDROCK
     ```
         "provider": "AWS",
         "model_id": "",
@@ -41,7 +41,9 @@ As mentioned in the paper “corrective Retrieval Augmented Generation” Large 
     Provide the values from your AWS Account
     Anthropic ref ```"model_id": "claude-3-5-sonnet-20240620" ```
 
-5. Copy the ```.env.example``` into a new file ```.env``` and replace the values
+5. Copy the content of ```params.example.json``` in ```params.json``` then provide the parameters
+
+6. Copy the ```.env.example``` into a new file ```.env``` and replace the values
     ```
         ANTHROPIC_API_KEY="" (If you are using Anthropic)
         REDIS_ENDPOINT="127.0.0.1" (Your redis endpoint running)
