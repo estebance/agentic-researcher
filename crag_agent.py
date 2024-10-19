@@ -44,7 +44,7 @@ def process_request_crag(user_id, thread_id, human_message):
         return final_state["generation"]
 
 
-def process_request_crag_as_team(message):
+def process_request_crag_as_team(state, agent_name='Researcher'):
     config_parameters = retrieve_parameters()
     print(config_parameters)
     # model = ChatAnthropic(model=config_parameters.model_id, temperature=0)
@@ -54,9 +54,10 @@ def process_request_crag_as_team(message):
     workflow = graph.workflow
     # OH MY CAT there is not checkpointer here
     llm_app = workflow.compile()
-    # each interaction enters as HUMAN
-    message_inputs = [HumanMessage(content=message)]
-    final_state = llm_app.invoke(
-        {"messages": message_inputs}
-    )
-    return final_state
+    final_state = llm_app.invoke(state)
+    # print("final response: ", final_state)
+    print("final_message: ", final_state["generation"])
+    # returns as human
+    return {
+        "messages": [HumanMessage(content=final_state["generation"], name=agent_name)]
+    }

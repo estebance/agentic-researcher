@@ -6,7 +6,7 @@ from langchain_anthropic import ChatAnthropic
 # IMPORTANT: this thing is key because it defines who goes next
 
 
-class AgentSupervidor:
+class AgentSupervisor:
 
     def __init__(self, model, members: list):
         self.model = model
@@ -14,8 +14,11 @@ class AgentSupervidor:
         self.system_prompt = """
             You are a supervisor tasked with managing a conversation between the
             following workers:  {members}. Given the following user request,
-            respond with the worker to act next. Each worker will perform a
-            task and respond with their results and status. When finished,
+            The Researcher: searchs information about the user request and generate a response
+            The Summarizer: grades the information provided by the researcher and generates a summary in clear language
+            respond with the worker to act next if is necessary or to finish and respond to the user. Each worker will perform a
+            task and respond with their results.
+            Call the same worker more than twice is not allowed at some point you must respond with FINISH.
             respond with FINISH.
         """
         self.members_options = ["FINISH"] + self.members
@@ -23,6 +26,10 @@ class AgentSupervidor:
             [
                 ("system", self.system_prompt),
                 MessagesPlaceholder(variable_name="messages"),
+                (
+                    "human",
+                    "Given this conversation, who should act next or should we FINISH? Select one of: {options}",
+                ),
             ]
         ).partial(options=str(self.members_options), members=", ".join(self.members))
 
@@ -32,4 +39,5 @@ class AgentSupervidor:
         class routeResponse(BaseModel):
             next: Literal[*member_options]
         supervisor_chain = self.prompt | self.model.with_structured_output(routeResponse)
-        return supervisor_chain.invoke(state)
+        supervision = supervisor_chain.invoke(state)
+        return supervision
