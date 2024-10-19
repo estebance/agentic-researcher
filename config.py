@@ -3,10 +3,27 @@ from pydantic import BaseModel, ValidationError
 PARAMETERS_FILE = "params.json"
 
 
+class CheckpointerParams(BaseModel):
+    endpoint: str
+    port: int
+    db_number: int
+
+class WebRetrieverParams(BaseModel):
+    urls: list[str]
+    is_advanced_search: bool
+    max_number_of_resources: int
+
+class KdbRetrieverParams(BaseModel):
+    kdb_id: str
+    kdb_max_number_of_results: int
+    kdb_region: str
+
 class ParametrizationAgent(BaseModel):
     provider: str
-    model_id: str
-    knowledge_base_id: str
+    llm_model_id: str
+    kdb_retriever_params: KdbRetrieverParams
+    web_retriever: WebRetrieverParams
+    checkpointer: CheckpointerParams
 
 
 def validate_parametrization_file(json_data):

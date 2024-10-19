@@ -13,10 +13,9 @@ from IPython.display import Image
 
 class WorkflowGraph:
 
-    def __init__(self, model, knowledge_base_id):
-        self.nodes = CragNodes(model, knowledge_base_id)
+    def __init__(self, model, kdb_retriever_params, web_retriever_params):
+        self.nodes = CragNodes(model, kdb_retriever_params, web_retriever_params)
         self.model = model
-        self.knowledge_base_id = knowledge_base_id
         # COMPILE THE GRAPH
         workflow = StateGraph(GraphState)
         # Define the nodes

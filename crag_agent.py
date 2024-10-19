@@ -10,7 +10,6 @@ from services.redis_checkpointer.redis_saver import RedisSaver
 from config import retrieve_parameters
 # The checkpointer lets the graph persist its state
 # this is a complete memory for the entire graph.
-PARAMETERS_FILE = "params.json"
 
 
 def process_request_crag(user_id, thread_id, human_message):
@@ -18,11 +17,14 @@ def process_request_crag(user_id, thread_id, human_message):
     config_parameters = retrieve_parameters()
     print(config_parameters)
     # model = ChatAnthropic(model=config_parameters.model_id, temperature=0)
-    model = ChatBedrock(model_id=config_parameters.model_id, temperature=0)
+    model = ChatBedrock(
+        model_id=config_parameters.llm_model_id,
+        temperature=0
+    )
     # LOAD CONFIG THEN BUILD WORKFLOW AND INVOKE
-    graph = WorkflowGraph(model, config_parameters.knowledge_base_id)
+    graph = WorkflowGraph(model, config_parameters.kdb_retriever_params, config_parameters.web_retriever)
     workflow = graph.workflow
-    with RedisSaver.from_conn_info(host="localhost", port=6379, db=1) as checkpointer:
+    with RedisSaver.from_conn_info(host=config_parameters.checkpointer.endpoint, port=config_parameters.checkpointer.port, db=config_parameters.checkpointer.db_number) as checkpointer:
         llm_app = workflow.compile(
             checkpointer=checkpointer,
         )

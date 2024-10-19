@@ -24,9 +24,10 @@ class GeneratorQuestion(BaseModel):
 
 class CragNodes:
 
-    def __init__(self, model, knowledge_base_id):
+    def __init__(self, model, kdb_retriever_params, web_retriever_params):
         self.model = model
-        self.knowledge_base_id = knowledge_base_id
+        self.kdb_retriever_params = kdb_retriever_params
+        self.web_retriever_params = web_retriever_params
 
 
     def retrieve(self, state):
@@ -42,7 +43,7 @@ class CragNodes:
         print("---RETRIEVE---")
         question = state["question"]
         # Retrieval
-        bedrock_kdb_retriever = retrieve_bedrock_kdb(self.knowledge_base_id)
+        bedrock_kdb_retriever = retrieve_bedrock_kdb(self.kdb_retriever_params)
         documents = bedrock_kdb_retriever.invoke(question)
         return {"documents": documents, "question": question}
 
@@ -77,8 +78,8 @@ class CragNodes:
         print("---GENERATE---")
         question = state["question"]
         documents = state["documents"]
+        language = "Spanish"
         # TODO CHECK THE IDEAL MANAGEMENT FROM THE STATE PERSPECTIVE
-        language = "es"
         # RAG generation
         generator = Generator(self.model)
         rag_chain = generator.gen_rag_chain()
@@ -109,6 +110,7 @@ class CragNodes:
             score = retrieval_grader_chain.invoke(
                 {"question": question, "document": d.page_content}
             )
+            # at least one document was not relevant
             grade = score.binary_score
             if grade == "yes":
                 print("---GRADE: DOCUMENT RELEVANT---")
@@ -130,7 +132,6 @@ class CragNodes:
         Returns:
             state (dict): Updates question key with a re-phrased question
         """
-
         print("---TRANSFORM QUERY---")
         question = state["question"]
         documents = state["documents"]
@@ -157,13 +158,13 @@ class CragNodes:
         documents = state["documents"]
         print(question)
         # Web search
-        web_search_tool = retrieve_web_search_tool()
+        web_search_tool = retrieve_web_search_tool(self.web_retriever_params)
         docs = web_search_tool.invoke({"query": question})
         print(docs)
         web_results = "\n".join([d["content"] for d in docs])
         web_results = Document(page_content=web_results)
         documents.append(web_results)
-        return {"documents": documents, "question": question}
+        return {"documents": documents}
 
 
     ### Edges

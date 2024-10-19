@@ -23,6 +23,8 @@ class AgentState(TypedDict):
     team_members: List[str]
     # The 'next' field indicates where to route to next
     next: str
+    summary: str
+    cool_post: str
 
 
 config_parameters = retrieve_parameters()
@@ -46,7 +48,7 @@ def generate_final_reply(state):
                 If the information provided by the Researcher has enough information to generate a summary you do it \n
                 If the participants mention that they do not know a response you generate the summary\n
                 After you finish the summary you say that we can reply to the user.
-                If you see that a participant could provide more information you do not mention thatwe can reeply to the user.
+                If you see that a participant could provide more information you do not mention that we can reply to the user.
     """
     grade_prompt = ChatPromptTemplate.from_messages(
         [
@@ -59,17 +61,43 @@ def generate_final_reply(state):
     final_state = retrieval_grader.invoke(state)
     print("summarizer:", final_state)
     return {
-        "messages": [HumanMessage(content=final_state.content, name='Summarizer')]
+        "messages": [HumanMessage(content=final_state.content, name='Summarizer')],
+        "summary": final_state.content
     }
 
 
+def respond_to_the_user(state):
+    """
+    Generate answer
+
+    Args:
+        state (dict): The current graph state
+
+    Returns:
+        state (dict): New key added to state, generation, that contains LLM generation
+    """
+    print("---FINAL REPLY---")
+    summary = state["summary"]
+    print("for final reply: ", summary)
+    system = """You are a journalist who creates nice posts with clear, fresh and polite language"""
+    final_prompt = ChatPromptTemplate.from_messages(
+        [
+            ("system", system),
+            ("human", "Generate a nice post by using the following summary: {summary}"),
+        ]
+    )
+    retrieval_grader = final_prompt | model
+    final_state = retrieval_grader.invoke({"summary": summary})
+    print("cool post: ", final_state.content)
+    return {"cool_post": final_state.content}
+
 agent_supervisor = AgentSupervisor(model=model, members=['Researcher', 'Summarizer'])
-
-
 research_graph = StateGraph(AgentState)
 research_graph.add_node("Researcher", process_request_crag_as_team)
 research_graph.add_node("Summarizer", generate_final_reply)
 research_graph.add_node("supervisor", agent_supervisor.supervisor_agent)
+research_graph.add_node("reply", respond_to_the_user)
+
 
 # Define the control flow
 research_graph.add_edge("Researcher", "supervisor")
@@ -77,9 +105,10 @@ research_graph.add_edge("Summarizer", "supervisor")
 research_graph.add_conditional_edges(
     "supervisor",
     lambda x: x["next"],
-    {"Researcher": "Researcher", "Summarizer": "Summarizer", "FINISH": END},
+    {"Researcher": "Researcher", "Summarizer": "Summarizer", "FINISH": "reply"},
 )
 research_graph.add_edge(START, "supervisor")
+research_graph.add_edge("reply", END)
 with RedisSaver.from_conn_info(host="localhost", port=6379, db=1) as checkpointer:
     chain = research_graph.compile(
         checkpointer=checkpointer
@@ -101,13 +130,13 @@ for s in research_chain.stream(
     "Que eventos tenemos para la COP16?",
     {
         "recursion_limit": 150,
-        "user_id": "393939393212323232323233234233434345345334334",
-        "thread_id": "3949439349123222344we34433333123834534534445"
+        "user_id": "234234254568987890",
+        "thread_id": "234234254568886549890"
     },
 ):
-    print("stream: ", s)
-    if "__end__" not in s:
-        print(s)
-        print("---")
+    print("stream: ", s.keys())
+    if 'reply' in s.keys():
+        print("reply found")
+        print("DONE: ", s["reply"]["cool_post"])
     else:
         print("END")
