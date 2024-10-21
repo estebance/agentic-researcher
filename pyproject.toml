@@ -9,10 +9,17 @@ package-mode = false
 [tool.poetry.dependencies]
 python = "^3.12"
 langchain-core = "^0.3.10"
-langchain = "^0.3.3"
+langchain = "^0.3.4"
 langchain-aws = "^0.2.2"
 python-dotenv = "^1.0.1"
 pytz = "^2024.2"
+fastapi = "^0.115.2"
+langchain-anthropic = "^0.2.3"
+langgraph = "^0.2.39"
+langchain-community = "^0.3.3"
+ipython = "^8.28.0"
+redis = "^5.1.1"
+uvicorn = "^0.32.0"
 
 
 [tool.poetry.group.test.dependencies]

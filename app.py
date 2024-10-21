@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+import uvicorn
 from dotenv import load_dotenv
 from pydantic import BaseModel
 from crag_agent import process_request_crag

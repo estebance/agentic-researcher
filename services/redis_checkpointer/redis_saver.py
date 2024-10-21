@@ -90,6 +90,8 @@ class RedisSaver(BaseCheckpointSaver):
             else "",
         }
         self.conn.hset(key, mapping=data)
+        # TODO review this expiration each 24 hours
+        self.conn.expire(key, 60 * 60 * 24)
         return {
             "configurable": {
                 "thread_id": thread_id,

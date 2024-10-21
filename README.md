@@ -39,8 +39,8 @@ As mentioned in the paper “corrective Retrieval Augmented Generation” Large 
         "knowledge_base_id": ""
     ```
     Provide the values from your AWS Account
-    Anthropic ref ```"model_id": "claude-3-5-sonnet-20240620" ```
-
+    Anthropic ref ```"llm_model_id": "claude-3-5-sonnet-20240620" ```
+    Bedrock with Anthropic ```"llm_model_id": "us.anthropic.claude-3-5-sonnet-20240620-v1:0"```
 5. Copy the content of ```params.example.json``` in ```params.json``` then provide the parameters
 
 6. Copy the ```.env.example``` into a new file ```.env``` and replace the values
