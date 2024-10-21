@@ -51,6 +51,7 @@ class RedisSaver(BaseCheckpointSaver):
             conn = Redis(host=host, port=port, db=db)
             yield RedisSaver(conn)
         finally:
+            print("Killing connection")
             if conn:
                 conn.close()
 

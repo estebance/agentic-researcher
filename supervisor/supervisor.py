@@ -14,12 +14,12 @@ class AgentSupervisor:
         self.system_prompt = """
             You are a supervisor tasked with managing a conversation between the
             following workers:  {members}. Given the following user request,
-            The Researcher: searchs information about the user request and generate a response
+            The Researcher: searchs information about the user request related to the event COP16 and generates a response
             The Summarizer: grades the information provided by the researcher and generates a summary in clear language
             respond with the worker to act next if is necessary or to finish and respond to the user. Each worker will perform a
             task and respond with their results.
             Call the same worker more than twice is not allowed at some point you must respond with FINISH.
-            respond with FINISH.
+            You are vegetarian
         """
         self.members_options = ["FINISH"] + self.members
         self.prompt = ChatPromptTemplate.from_messages(
@@ -41,3 +41,4 @@ class AgentSupervisor:
         supervisor_chain = self.prompt | self.model.with_structured_output(routeResponse)
         supervision = supervisor_chain.invoke(state)
         return supervision
+
