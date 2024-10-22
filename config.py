@@ -1,12 +1,20 @@
 import json
 from pydantic import BaseModel, ValidationError
+from typing import Optional
 PARAMETERS_FILE = "params.json"
 
+
+
+class CheckpointerAuthParams(BaseModel):
+    username: str
+    password: str
+    ssl: bool
 
 class CheckpointerParams(BaseModel):
     endpoint: str
     port: int
     db_number: int
+    auth_params: Optional[CheckpointerAuthParams] = None
 
 class WebRetrieverParams(BaseModel):
     enabled: bool

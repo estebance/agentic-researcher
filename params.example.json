@@ -15,7 +15,11 @@
     "checkpointer": {
         "endpoint": "127.0.0.1",
         "port": 6379,
-        "db_number": 0
-
+        "db_number": 0,
+        "auth_params": {
+            "username": "default",
+            "password": "<your password>",
+            "ssl": true
+        }
     }
 }

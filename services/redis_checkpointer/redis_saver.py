@@ -34,6 +34,8 @@ from .utilities import (
     _filter_keys
 )
 
+from config import CheckpointerAuthParams
+
 class RedisSaver(BaseCheckpointSaver):
     """Redis-based checkpoint saver implementation."""
 
@@ -45,10 +47,16 @@ class RedisSaver(BaseCheckpointSaver):
 
     @classmethod
     @contextmanager
-    def from_conn_info(cls, *, host: str, port: int, db: int) -> Iterator["RedisSaver"]:
+    def from_conn_info(cls, *, host: str, port: int, db: int = None, auth_params: CheckpointerAuthParams = None) -> Iterator["RedisSaver"]:
         conn = None
         try:
-            conn = Redis(host=host, port=port, db=db)
+            if auth_params and auth_params.username and auth_params.password and auth_params.ssl:
+                conn = Redis(
+                    host=host, port=port, db=db, username=auth_params.username,
+                    password=auth_params.password, ssl=auth_params.ssl
+                )
+            else:
+                conn = Redis(host=host, port=port, db=db)
             yield RedisSaver(conn)
         finally:
             print("Killing connection")

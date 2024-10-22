@@ -51,8 +51,12 @@ As mentioned in the paper “corrective Retrieval Augmented Generation” Large 
             "checkpointer": {
                 "endpoint": "127.0.0.1",
                 "port": 6379,
-                "db_number": 0
-
+                "db_number": 0,
+                "auth_params": {
+                    "username": "default",
+                    "password": "<your password>",
+                    "ssl": true
+                }
             }
         }
     ```
@@ -66,15 +70,44 @@ As mentioned in the paper “corrective Retrieval Augmented Generation” Large 
     - You can enable or disable de web search to do this just use the flag ```enabled=true/false``` available in the ```web_retriever```
 
 
-6. Copy the ```.env.example``` into a new file ```.env``` and replace the values
-    ```
-        ANTHROPIC_API_KEY="" (If you are using Anthropic)
-        REDIS_ENDPOINT="127.0.0.1" (Your redis endpoint running)
-        TAVILY_API_KEY="<your-tavily-api-key>"
-        LANGSMITH_TRACING="true"
-        LANGSMITH_API_KEY="<your langsmith api key>"
-        LANGCHAIN_PROJECT="<your-ideal-project-name>"
-        # AWS KDB and BEDROCK MODELS
-        AWS_PROFILE="<your aws profile>"
-        AWS_DEFAULT_REGION="us-east-1"
-    ```
+## The checkpointer
+
+The configuration of our checkpointer is pretty simple:
+
+The following parameters are mandatory:
+
+1. endpoint: Redis host
+2. port: Redis port
+3. db_number: integer
+4. auth_params: is optional, provide these parameters for staging, prod environments.
+
+Checkpointer configuration
+
+```
+    "checkpointer": {
+        "endpoint": "127.0.0.1",
+        "port": 6379,
+        "db_number": 0,
+        "auth_params": {
+            "username": "default",
+            "password": "<your password>",
+            "ssl": true
+        }
+    }
+```
+
+## Environment
+
+Copy the ```.env.example``` into a new file ```.env``` and replace the values
+
+```
+    ANTHROPIC_API_KEY="" (If you are using Anthropic)
+    REDIS_ENDPOINT="127.0.0.1" (Your redis endpoint running)
+    TAVILY_API_KEY="<your-tavily-api-key>"
+    LANGSMITH_TRACING="true"
+    LANGSMITH_API_KEY="<your langsmith api key>"
+    LANGCHAIN_PROJECT="<your-ideal-project-name>"
+    # AWS KDB and BEDROCK MODELS
+    AWS_PROFILE="<your aws profile>"
+    AWS_DEFAULT_REGION="us-east-1"
+```

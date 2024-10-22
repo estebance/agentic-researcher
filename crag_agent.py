@@ -25,7 +25,7 @@ def process_request_crag(user_id, thread_id, human_message):
     graph = WorkflowGraph(model, config_parameters.kdb_retriever_params, config_parameters.web_retriever)
     workflow = graph.workflow
     graph.generate_graph()
-    with RedisSaver.from_conn_info(host=config_parameters.checkpointer.endpoint, port=config_parameters.checkpointer.port, db=config_parameters.checkpointer.db_number) as checkpointer:
+    with RedisSaver.from_conn_info(host=config_parameters.checkpointer.endpoint, port=config_parameters.checkpointer.port, db=config_parameters.checkpointer.db_number, auth_params=config_parameters.checkpointer.auth_params) as checkpointer:
         llm_app = workflow.compile(
             checkpointer=checkpointer,
         )
