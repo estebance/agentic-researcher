@@ -9,7 +9,7 @@ class CheckpointerParams(BaseModel):
     db_number: int
 
 class WebRetrieverParams(BaseModel):
-    activated: bool
+    enabled: bool
     urls: list[str]
     is_advanced_search: bool
     max_number_of_resources: int

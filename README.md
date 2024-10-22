@@ -32,16 +32,39 @@ As mentioned in the paper “corrective Retrieval Augmented Generation” Large 
     ```
         poetry install
     ````
-4. Check the ```params.example.json```, because this is an initial version of this tool we only support AWS BEDROCK
+4. Check the ```params.example.json```, because this is an initial version of this tool we only support AWS BEDROCK but you can manually use ANTHROPIC.
     ```
-        "provider": "AWS",
-        "model_id": "",
-        "knowledge_base_id": ""
+        {
+            "provider": "AWS",
+            "llm_model_id": "<YOUR BEDROCK MODEL ID>",
+            "kdb_retriever_params": {
+                "kdb_id": "<YOUR KDB ID>",
+                "kdb_max_number_of_results": 3,
+                "kdb_region": "us-east-1"
+            },
+            "web_retriever": {
+                "enabled": false,
+                "urls": [],
+                "is_advanced_search": "true",
+                "max_number_of_resources": 5
+            },
+            "checkpointer": {
+                "endpoint": "127.0.0.1",
+                "port": 6379,
+                "db_number": 0
+
+            }
+        }
     ```
+    - Anthropic ref ```"llm_model_id": "claude-3-5-sonnet-20240620" ```
+
     Provide the values from your AWS Account
-    Anthropic ref ```"llm_model_id": "claude-3-5-sonnet-20240620" ```
-    Bedrock with Anthropic ```"llm_model_id": "us.anthropic.claude-3-5-sonnet-20240620-v1:0"```
+    - Bedrock with Anthropic ```"llm_model_id": "us.anthropic.claude-3-5-sonnet-20240620-v1:0"``` (cross regional inference)
+
 5. Copy the content of ```params.example.json``` in ```params.json``` then provide the parameters
+
+    - You can enable or disable de web search to do this just use the flag ```enabled=true/false``` available in the ```web_retriever```
+
 
 6. Copy the ```.env.example``` into a new file ```.env``` and replace the values
     ```

@@ -26,7 +26,7 @@ class WorkflowGraph:
         workflow.add_edge(START, "rewrite")
         workflow.add_edge("rewrite", "retrieve")
         # workflow.add_edge(START, "retrieve")
-        if  web_retriever_params.activated:
+        if  web_retriever_params.enabled:
             workflow.add_node("grade_documents", self.nodes.grade_documents)  # grade documents
             workflow.add_node("web_search_node", self.nodes.web_search)  # web search
             workflow.add_edge("retrieve", "grade_documents")
