@@ -21,24 +21,26 @@ class WorkflowGraph:
         # Define the nodes
         workflow.add_node("rewrite", self.nodes.rewrite)
         workflow.add_node("retrieve", self.nodes.retrieve)  # retrieve
-        workflow.add_node("grade_documents", self.nodes.grade_documents)  # grade documents
         workflow.add_node("generate", self.nodes.generate)  # generatae
-        workflow.add_node("web_search_node", self.nodes.web_search)  # web search
         # Build graph
         workflow.add_edge(START, "rewrite")
         workflow.add_edge("rewrite", "retrieve")
         # workflow.add_edge(START, "retrieve")
-        workflow.add_edge("retrieve", "grade_documents")
-        workflow.add_conditional_edges(
-            "grade_documents",
-            self.nodes.decide_to_generate,
-            {
-                "web_search_node": "web_search_node",
-                "generate": "generate",
-            },
-        )
-        # workflow.add_edge("transform_query", "web_search_node")
-        workflow.add_edge("web_search_node", "generate")
+        if  web_retriever_params.activated:
+            workflow.add_node("grade_documents", self.nodes.grade_documents)  # grade documents
+            workflow.add_node("web_search_node", self.nodes.web_search)  # web search
+            workflow.add_edge("retrieve", "grade_documents")
+            workflow.add_conditional_edges(
+                "grade_documents",
+                self.nodes.decide_to_generate,
+                {
+                    "web_search_node": "web_search_node",
+                    "generate": "generate",
+                },
+            )
+            workflow.add_edge("web_search_node", "generate")
+        else:
+            workflow.add_edge("retrieve", "generate")
         workflow.add_edge("generate", END)
         # Compile
         self.workflow = workflow
@@ -46,8 +48,9 @@ class WorkflowGraph:
 
     def generate_graph(self):
         try:
-            image = Image(self.workflow.get_graph(xray=True).draw_mermaid_png())
-            with open("crag_image1.png", "wb") as fout:
+            compiled_workflow= self.workflow.compile()
+            image = Image(compiled_workflow.get_graph(xray=True).draw_mermaid_png())
+            with open("crag.png", "wb") as fout:
                 fout.write(image.data)
             # display(image)
         except Exception:

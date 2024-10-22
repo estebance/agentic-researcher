@@ -15,6 +15,7 @@ def test_valid_parameters():
             "kdb_region": "us-east-1",
         },
         "web_retriever": {
+            "activated": False,
             "urls": ["http://example.com"],
             "is_advanced_search": True,
             "max_number_of_resources": 5
@@ -42,6 +43,7 @@ def test_invalid_parameters():
             "kdb_region": "us-east-1",
         },
         "web_retriever": {
+            "activated": False,
             "urls": "http://example.com",
             "is_advanced_search": True,
             "max_number_of_resources": 5

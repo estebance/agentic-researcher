@@ -24,6 +24,7 @@ def process_request_crag(user_id, thread_id, human_message):
     # LOAD CONFIG THEN BUILD WORKFLOW AND INVOKE
     graph = WorkflowGraph(model, config_parameters.kdb_retriever_params, config_parameters.web_retriever)
     workflow = graph.workflow
+    graph.generate_graph()
     with RedisSaver.from_conn_info(host=config_parameters.checkpointer.endpoint, port=config_parameters.checkpointer.port, db=config_parameters.checkpointer.db_number) as checkpointer:
         llm_app = workflow.compile(
             checkpointer=checkpointer,
@@ -52,7 +53,7 @@ def process_request_crag_as_team(state, agent_name='Researcher'):
     model = ChatAnthropic(model=config_parameters.llm_model_id, temperature=0)
     # model = ChatBedrock(model_id=config_parameters.llm_model_id, temperature=0)
     # LOAD CONFIG THEN BUILD WORKFLOW AND INVOKE
-    graph = WorkflowGraph(model, config_parameters.kdb_retriever_params, config_parameters.web_retriever)
+    graph = WorkflowGraph(model, config_parameters.kdb_retriever_params, True, config_parameters.web_retriever)
     workflow = graph.workflow
     # OH MY CAT there is not checkpointer here
     llm_app = workflow.compile()
@@ -63,3 +64,5 @@ def process_request_crag_as_team(state, agent_name='Researcher'):
     return {
         "messages": [HumanMessage(content=final_state["generation"], name=agent_name)]
     }
+
+process_request_crag("user_id", "thread_id", "que eventos hay")
