@@ -42,6 +42,15 @@ class AgentState(TypedDict):
 
 
 config_parameters = retrieve_parameters()
+
+# from parameters we are going to retrieve
+# custom agent name and custom agent role description
+# pass the parameters to the simple_tool workflow as an agent to resolve a request
+# The parameters are (tool name, tool_description, tool_schema)
+
+
+
+
 model = ChatBedrock(model_id=config_parameters.llm_model_id, temperature=0)
 
 # role descriptor
