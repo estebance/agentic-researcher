@@ -1,31 +1,33 @@
 import argparse
-from pydantic import create_model, BaseModel
+from langchain_core.tools import StructuredTool
+from pydantic import create_model
+import requests
 
 # Example JSON schema
-json_schema = {
-    "title": "Example Model",
-    "type": "object",
-    "properties": {
-        "id": {
-            "type": "integer",
-        },
-        "name": {
-            "type": "string",
-        },
-        "age": {
-            "type": "integer",
-            "default": 30
-        },
-    },
-    "required": ["id", "name"]
-}
+# json_schema = {
+#     "title": "Example Model",
+#     "type": "object",
+#     "properties": {
+#         "id": {
+#             "type": "integer",
+#         },
+#         "name": {
+#             "type": "string",
+#         },
+#         "age": {
+#             "type": "integer",
+#             "default": 30
+#         },
+#     },
+#     "required": ["id", "name"]
+# }
 
 # Function to dynamically create a pydantic model from json schema
 def model_from_schema(schema_dict):
     fields = {}
     function_arguments = argparse.ArgumentParser()
     for field_name, field_info in schema_dict['properties'].items():
-        field_type = {'string': str, 'integer': int, 'number': float, 'boolean': bool}.get(field_info['type'], None)
+        field_type = {'string': str, 'integer': int, 'number': float, 'boolean': bool, 'object': object}.get(field_info['type'], None)
         default_value = field_info.get('default', Ellipsis if field_name in schema_dict.get('required', []) else None)
         fields[field_name] = (field_type, default_value)
         # add arguments
@@ -34,8 +36,21 @@ def model_from_schema(schema_dict):
     return model
 
 
-# Generate the Pydantic model
-# Testing the model
-# example = ExampleModel(id=1, name="Sample Name")
-# print(example)
-# print(example.dict())
+def gen_tool(tool_name, tool_desc, tool_function, tool_function_model):
+    custom_tool = StructuredTool.from_function(
+        func=tool_function,
+        name=tool_name,
+        description=tool_desc,
+        args_schema=tool_function_model,
+        return_direct=True
+    )
+    return custom_tool
+
+
+def request_service(endpoint, request_body, request_headers):
+    try:
+        response = requests.post(endpoint, json=request_body, headers=request_headers)
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        print(f"Error: {e}")

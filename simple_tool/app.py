@@ -6,14 +6,19 @@ from langchain_core.messages import HumanMessage
 from dotenv import load_dotenv
 from state import  State
 from tools import tools
+from langchain_core.callbacks import StdOutCallbackHandler
 
 load_dotenv()
 
-llm_model = ChatAnthropic(model="claude-3-5-sonnet-20241022")
+stdout_callback_handler = StdOutCallbackHandler()
+
+llm_model = ChatAnthropic(
+    model="claude-3-5-sonnet-20241022",
+    callbacks=[stdout_callback_handler]
+)
 llm_model = llm_model.bind_tools(tools)
 
 def chatbot(state: State):
-    # print(state["pregunta"])
     response = llm_model.invoke(state["messages"])
     print(response)
     return {

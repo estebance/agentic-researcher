@@ -25,3 +25,30 @@ async def crag(interaction_request: InteractionData):
     return {"data": {
         "message": response
     }}
+
+
+
+class PlansData(BaseModel):
+    plans: list
+
+
+@app.post("/plans")
+async def plans(plans_request: PlansData):
+    request_body = plans_request.model_dump()
+    print(request_body)
+    return {
+        "data": {
+            "plans": [
+                {
+                    "name": "nice vacations",
+                    "desc": "nice vacations in Colombia",
+                    "id": 1
+                },
+                {
+                    "name": "mountain vacations",
+                    "desc": "Enjoy the sigth",
+                    "id": 2
+                }
+            ]
+        }
+    }
