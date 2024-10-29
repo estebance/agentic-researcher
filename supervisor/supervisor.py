@@ -26,10 +26,11 @@ class AgentSupervisor:
             following workers:  {members}.
             Each one of these workers has the following roles:
             {members_descriptions}
-            Given the following user request, respond with the worker to act next if is necessary or to finish and respond to the user. Each worker will perform a
-            task and respond with their results.
-            Call the same worker more than twice is not allowed at some point you must respond with FINISH.
-        """ %()
+            Given the following user request, respond with the worker to act next if neccesary.
+            If more information is required from the user summarize and finish.
+            If you think there is enough information to reply then summarize and finish.
+            Call the same member more than twice is not allowed at some point you must respond with summarize.
+        """
         self.members_options = ["FINISH"] + members_names
         self.prompt = ChatPromptTemplate.from_messages(
             [

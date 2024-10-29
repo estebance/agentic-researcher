@@ -52,3 +52,16 @@ async def plans(plans_request: PlansData):
             ]
         }
     }
+
+@app.post("/buy-plan")
+async def plans(plans_request: PlansData):
+    request_body = plans_request.model_dump()
+    print(request_body)
+    return {
+        "data": {
+            "plan": {
+                    "name": "nice vacations",
+                    "id": 1
+                }
+        }
+    }

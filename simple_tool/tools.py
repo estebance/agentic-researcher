@@ -2,7 +2,7 @@ from langchain_core.tools import tool, StructuredTool
 from typing import Annotated
 from functools import partial
 from pydantic import BaseModel, Field, create_model
-from utilities import model_from_schema, request_service
+from .utilities import model_from_schema, request_service
 
 
 @tool
@@ -72,12 +72,27 @@ json_schema = {
 
 dynamic_model = model_from_schema(json_schema)
 
+
+# model chema
+json_schema_buy_plan = {
+    "title": "BuyTravelPlan",
+    "type": "object",
+    "properties": {
+        "id_plan": {
+            "type": "integer",
+        },
+    },
+    "required": ["id_plan"]
+}
+
+buy_plan_model = model_from_schema(json_schema_buy_plan)
+
+
 def my_dynamic_function(endpoint, **args):
     # delegate the dynamic model to pass the args
     # At the end of the day this code is going to call APIs
-    print("endpoint: ", args)
+    print("endpoint: ", endpoint)
     print("arguments function: ", args)
-    endpoint = f"{endpoint}/plans"
     request_body = {
         "plans": ["hi"]
     }
@@ -100,8 +115,13 @@ def gen_tool(tool_name, tool_desc, tool_function, tool_function_model):
     return custom_tool
 
 # defined as partial to add some configuration
-dynamic_function_partial = partial(my_dynamic_function, 'http://localhost:8000')
+plans_function_partial = partial(my_dynamic_function, 'http://localhost:8000/plans')
+buy_plan_function_partial = partial(my_dynamic_function, 'http://localhost:8000/buy-plan')
+
 # dynamic_function_partial(family_type="family")
 
-fech_travel_plans_tool = gen_tool('fetch_travel_plans', 'Use this to get information about travel plans', dynamic_function_partial, dynamic_model)
-tools = [purchase_travel_plan, fech_travel_plans_tool]
+fech_travel_plans_tool = gen_tool('fetch_travel_plans', 'Use this to get information about travel plans', plans_function_partial, dynamic_model)
+buy_travel_plan_tool = gen_tool('buy_travel_plan', 'Use this to buy a new travel plan', buy_plan_function_partial, buy_plan_model)
+
+
+tools = [purchase_travel_plan, fech_travel_plans_tool, buy_travel_plan_tool]
