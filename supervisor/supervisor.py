@@ -32,21 +32,26 @@ class AgentSupervisor:
             <workers_descriptions>
             {members_descriptions}
             </workers_descriptions>
+            Each worker can provide the following recommended actions thru a notification tag:
+                FINISH: supervisor should finish
+                EVALUATE: supervisor should check if other worker can continue with the task
+                ASK: supervidor should Finish because the user must provide addional information
             Your task is to analyze the request and determine the appropriate next action based on the following rules and constraints:
-            Rules:
-            1. If more information is required from the user, finish the interaction.
-            2. If there is enough information to reply, finish the interaction.
-            3. If neither of the above applies, assign the next task to the most appropriate worker.
-            Constraints:
-            1. Never call the same worker more than once in a row.
-            1. Never call the same worker more than twice.
-            2. You must finish the conversation at some point.
-            To make your decision, follow these steps:
-            1. Analyze the user request and the available worker roles.
-            2. Determine if there is enough information to respond or if more information is needed from the user.
-            3. If more information is needed or if a response can be provided, decide to finish the interaction.
-            4. If neither of the above applies, select the most appropriate worker for the next task.
-            5. Keep track of how many times each worker has been called to ensure you don't exceed the limit.
+                Rules:
+                    1. If more information is required from the user, finish the interaction.
+                    2. If there is enough information to reply, finish the interaction.
+                    3. If neither of the above applies, assign the next task to the most appropriate worker.
+                Constraints:
+                    1. Never call the same worker more than once in a row.
+                    1. Never call the same worker more than twice.
+                    2. You must finish the conversation at some point.
+                    To make your decision, follow these steps:
+                    1. Analyze the user request and the available worker roles.
+                    2. Determine if there is enough information to respond or if more information is needed from the user.
+                    3. If more information is needed or if a response can be provided, decide to finish the interaction.
+                    4. If neither of the above applies, select the most appropriate worker for the next task.
+                        5. Keep track of how many times each worker has been called to ensure you don't exceed the limit.
+            You can also evaluate the workers recommendations to decide the next action
         """
         # <decision>
         #     Action: [Choose one: "Assign to Worker", "Finish - Need More Information", or "Finish - Ready to Respond"]

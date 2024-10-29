@@ -138,4 +138,5 @@ if __name__ == "__main__":
     # init_conversation("Hola")
     # init_conversation("que planes tienes disponibles?")
     # init_conversation("puedes darme los planes mas bonitos?")
-    init_conversation("Mi nombre es Esteban, tengo 33 años y mi id es 123")
+    # init_conversation("Mi nombre es Esteban, tengo 33 años y mi id es 123")
+    init_conversation("me gustaria comprar uno de esos planes: el de id 50")
