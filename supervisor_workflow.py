@@ -1,6 +1,7 @@
 import functools
 import operator
 from typing import Sequence
+from langgraph.graph.message import add_messages
 from typing_extensions import TypedDict
 from typing import Annotated, List
 from langchain_core.messages import BaseMessage
@@ -32,10 +33,10 @@ class ReplyToUser(BaseModel):
 class AgentState(TypedDict):
     # The annotation tells the graph that new messages will always
     # be added to the current states
-    messages: Annotated[Sequence[BaseMessage], operator.add]
+    messages: Annotated[Sequence[BaseMessage], add_messages]
+    know_reply: bool
     #
     response: str
-    know_reply: bool
     # Team
     team_members: List[str]
     # The 'next' field indicates where to route to next
@@ -55,28 +56,27 @@ model = ChatAnthropic(model=config_parameters.llm_model_id, temperature=0)
 supervisor_nodes = SupervisorNodes(model)
 
 def decide_to_reply(state):
-    if state["response"] and state["know_reply"]:
+    if state["know_reply"]:
         return "FINISH"
     else:
-        return "research"
+        return "supervisor"
 
 # "Summarizer": "grades the information provided by the members and generates a summary in clear language before reply",
 members = {
     "Researcher": "searchs information about the user request related to the event COP16 and generates a response",
-    "VacationsPlanner": "helps people find their varations and buy the plans"
+    "VacationsPlanner": "helps people find their vacations and buy vacations plans"
 }
 agent_supervisor = AgentSupervisor(model=model, members=members)
 research_graph = StateGraph(AgentState)
-research_graph.add_node("CustomerAgent", supervisor_nodes.reply_to_user)
+# research_graph.add_node("CustomerAgent", supervisor_nodes.reply_to_user)
 research_graph.add_node("Researcher", process_request_crag_as_team)
-#  research_graph.add_node("Summarizer", supervisor_nodes.grader_final_reply)
+research_graph.add_node("Assistant", supervisor_nodes.assistant)
 research_graph.add_node("supervisor", agent_supervisor.supervisor_agent)
 research_graph.add_node("reply", supervisor_nodes.gen_final_reply)
 research_graph.add_node("VacationsPlanner", process_request_vacations_planner_as_team)
 
 # Define the control flow
 research_graph.add_edge("Researcher", "supervisor")
-# research_graph.add_edge("Summarizer", "supervisor")
 research_graph.add_edge("VacationsPlanner", "supervisor")
 research_graph.add_conditional_edges(
     "supervisor",
@@ -85,13 +85,13 @@ research_graph.add_conditional_edges(
 )
 # research_graph.add_edge(START, "supervisor")
 
-research_graph.add_edge(START, "CustomerAgent")
+research_graph.add_edge(START, "Assistant")
 research_graph.add_conditional_edges(
-    "CustomerAgent",
+    "Assistant",
     decide_to_reply,
     {
-        "research": "supervisor",
-        "FINISH": END,
+        "supervisor": "supervisor",
+        "FINISH": "reply",
     },
 )
 
@@ -120,8 +120,8 @@ def init_conversation(message: str):
             message,
             {
                 "recursion_limit": 150,
-                "user_id": "234434",
-                "thread_id": "234Q34233423443223233"
+                "user_id": "restebance@gmail.com",
+                "thread_id": "11"
             },
         )
         print(reply)
@@ -135,4 +135,7 @@ def init_conversation(message: str):
         #     print("END")
 
 if __name__ == "__main__":
-    init_conversation("vamos dos personas desde el 1 de noviembre por dos dias")
+    # init_conversation("Hola")
+    # init_conversation("que planes tienes disponibles?")
+    # init_conversation("puedes darme los planes mas bonitos?")
+    init_conversation("Mi nombre es Esteban, tengo 33 años y mi id es 123")

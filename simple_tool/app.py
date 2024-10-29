@@ -2,11 +2,12 @@ from langchain_anthropic import ChatAnthropic
 from langgraph.graph import StateGraph, START, END
 from langgraph.prebuilt import ToolNode
 from langgraph.prebuilt import tools_condition
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage, AIMessage
 from dotenv import load_dotenv
 from .state import  State
 from .tools import tools
 from langchain_core.callbacks import StdOutCallbackHandler
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 
 load_dotenv()
 
@@ -20,7 +21,16 @@ llm_model = llm_model.bind_tools(tools)
 
 
 def chatbot(state: State):
-    response = llm_model.invoke(state["messages"])
+    prompt = ChatPromptTemplate.from_messages(
+        [
+            ("system", """
+                You are a vacations planner. You can help the user to find plans, buy plans, if you require more information from the user you explicitly inform that to the supervisor"""
+             ),
+            MessagesPlaceholder(variable_name="messages"),
+        ]
+    )
+    chat_model =  prompt | llm_model
+    response = chat_model.invoke(state["messages"])
     print(response)
     return {
         "messages": [response]

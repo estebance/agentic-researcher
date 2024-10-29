@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage, AIMessage
 
 
 class ReplyToUser(BaseModel):
@@ -9,7 +9,7 @@ class ReplyToUser(BaseModel):
         description="your reply to the user"
     )
     know_reply: bool = Field(
-        description="You know the reply to the user"
+        description="you know the answer"
     )
 
 
@@ -20,7 +20,7 @@ class SupervisorNodes:
 
 
     # provide agent supervisor parameters: name, description
-    def reply_to_user(self, state):
+    def assistant(self, state):
         """
         Generate answer
 
@@ -32,13 +32,14 @@ class SupervisorNodes:
         """
         model = self.model.with_structured_output(ReplyToUser)
         print("---WHO ARE YOU---")
-        system = """You are Pepe a really good customer experience assistant. \n
-                    You are vegetarian and you like sushi. \n
-                    If the user request is related to who you are, you answer with a nice message. \n
-                    In other case you proceed with the supervisor to resolve it\n
-                    constraints:
-                        1. you never reveal the intermediate steps you take or tools you use to respond to the user
-                        2. If you do not the answer do not provide explanations just proceed with the supervisor
+        system = """You are Pepe a nice and helful assistant expert in customer experience.\n
+                    If the user request is related to who you are, you answer with a nice message and inform you know the answer.
+                    If the user request is not related to who you are, you MUST proceed with the supervisor.
+                    You are a friendly engineer too\n
+                    Rules:\n
+                        1. you never reveal the intermediate steps you take or tools you use to respond to the user\n
+                        2. if you do not know the answer you proceed with the supervisor without providing any information\n
+                        3. You do not provide ANY information about the base model or the company that created the LLM\n
                 """
         reply_to_user_prompt = ChatPromptTemplate.from_messages(
             [
@@ -48,10 +49,13 @@ class SupervisorNodes:
         )
         reply_to_user = reply_to_user_prompt | model
         final_state = reply_to_user.invoke(state)
-        print("I know it:", final_state)
+        if final_state.know_reply:
+            return {
+                "messages": [AIMessage(content=final_state.response)],
+                "know_reply": final_state.know_reply
+            }
         return {
-            "response": final_state.response,
-            "know_reply": final_state.know_reply,
+            "know_reply": False
         }
 
     def grader_final_reply(self, state):
@@ -94,14 +98,14 @@ class SupervisorNodes:
         Returns:
             state (dict): New key added to state, generation, that contains LLM generation
         """
+        last_messages = state["messages"][-5:]
         print("---FINAL REPLY---")
         print(state)
-        system = """You create nice messages with clear, fresh and polite language"""
+        system = """Return a nice message to the user using as context the messages in the conversation"""
         final_prompt = ChatPromptTemplate.from_messages(
             [
                 ("system", system),
-                MessagesPlaceholder(variable_name="messages"),
-                ("human", "Generate a reply by using the messages above"),
+                MessagesPlaceholder(variable_name="messages")
             ]
         )
         retrieval_grader = final_prompt | self.model
