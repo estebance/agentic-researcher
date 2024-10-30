@@ -32,9 +32,9 @@ class AgentSupervisor:
             <workers_descriptions>
             {members_descriptions}
             </workers_descriptions>
-            Each worker can provide the following recommended actions thru a notification tag:
+            Each worker can provide the following recommended actions through a notification tag:
                 FINISH: supervisor should finish
-                EVALUATE: supervisor should check if other worker can continue with the task
+                EVALUATE: supervisor should check if another worker can continue with the task
                 ASK: supervidor should Finish because the user must provide addional information
             Your task is to analyze the request and determine the appropriate next action based on the following rules and constraints:
                 Rules:

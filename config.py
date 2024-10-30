@@ -27,18 +27,31 @@ class KdbRetrieverParams(BaseModel):
     kdb_max_number_of_results: int
     kdb_region: str
 
+class ToolsParams(BaseModel):
+    name: str
+    description: str
+    tool_schema: dict
+    endpoint: str
+    endpoint_config: dict
+
+class WokerParams(BaseModel):
+    id: str
+    name: str
+    task: str
+    tools: list[ToolsParams]
+
 class ParametrizationAgent(BaseModel):
     provider: str
     llm_model_id: str
     kdb_retriever_params: KdbRetrieverParams
     web_retriever: WebRetrieverParams
     checkpointer: CheckpointerParams
+    workers: list[WokerParams]
 
 
 def validate_parametrization_file(json_data):
     try:
         parametrization = ParametrizationAgent(**json_data)
-        print(parametrization)
         return parametrization
     except ValidationError as e:
         print("the provided config format is not valid: ", e)
@@ -51,3 +64,6 @@ def retrieve_parameters():
         data = json.load(file)
         parameters = validate_parametrization_file(data)
     return parameters
+
+if __name__ == "__main__":
+    retrieve_parameters()
