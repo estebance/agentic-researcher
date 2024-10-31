@@ -23,8 +23,8 @@ class DynamicWorker:
             Follow this format to notify the Supervisor with one of the following actions:
                 - FINISH: supervisor should finish
                 - EVALUATE: supervisor should check if other worker can continue with the task
-                - ASK: supervidor should Finish because the user must provide addional information
-            <notification supervisor_recommendation=action/>
+                - FINISH_ASK_USER: supervidor should Finish because the user must provide addional information
+            <notification supervisor_recommendation=action explanation=explain_your_decision/>
             Rules:
              1. Use ONLY the information provided by the tools to generate an answer
              2. Do not try to create your own responses, if you do not know something just notify to the supervisor that you do not know

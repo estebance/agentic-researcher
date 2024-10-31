@@ -28,10 +28,10 @@ def chatbot(state: State):
                 If you require more information from the user you explicitly inform that to  Supervisor,
                 If you determine that you have an answer yo explictly inform that you have a response
                 Follow this format to notify the Supervisor with one of the following actions:
-                FINISH: supervisor should finish
-                EVALUATE: supervisor should check if other worker can continue with the task
-                ASK: supervidor should Finish because the user must provide addional information
-                <notify supervisor_recommendation=action/>
+                    FINISH: supervisor should finish
+                    EVALUATE: supervisor should check if other worker can continue with the task
+                    FINISH_ASK_USER: supervisor should Finish because the user must provide addional information
+                <notify supervisor_recommendation=action explanation=explain_your_decision/>
                 """
              ),
             MessagesPlaceholder(variable_name="messages"),
@@ -63,7 +63,7 @@ graph_builder.add_edge("tools", "chatbot")
 
 
 
-def process_request_vacations_planner_as_team(state, agent_name='VacationsPlanner'):
+def process_request_vacations_planner_as_team(state, agent_name='VacationsPlannerWorker'):
     # compiled graph
     graph = graph_builder.compile()
     # message_inputs = [HumanMessage(content="Que planes de turismo tienes disponibles, mi nombre es Esteban, tengo 33 años y my id es 1?")]

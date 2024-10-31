@@ -1,6 +1,7 @@
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from pydantic import BaseModel
 from typing import Literal
+from langchain_core.messages import trim_messages
 import langchain
 
 langchain.verbose = True
@@ -23,7 +24,8 @@ class AgentSupervisor:
             members_descriptions = members_descriptions + "\n" +  f"{key}: {members[key]}"
 
         self.system_prompt = """
-            You are a supervisor AI tasked with managing a conversation between workers and determining the next action in response to a user request. Your goal is to decide whether to assign a task to a worker, finish the conversation, or request more information from the user.
+            You are a supervisor AI tasked with managing a conversation between workers and determining the next action in response to the final user request.
+            Your goal is to decide whether to assign a task to a worker, finish the conversation, or request more information from the final user.
             Here is the list of workers you are supervising:
             <workers>
             {members}
@@ -32,26 +34,23 @@ class AgentSupervisor:
             <workers_descriptions>
             {members_descriptions}
             </workers_descriptions>
-            Each worker can provide the following recommended actions through a notification tag:
-                FINISH: supervisor should finish
-                EVALUATE: supervisor should check if another worker can continue with the task
-                ASK: supervidor should Finish because the user must provide addional information
+            Each worker provide these recommended actions through a notification tag and the supervisor_recommendation key:
+                FINISH: you should FINISH the conversation
+                EVALUATE: you should check if another worker can continue with the task
+                FINISH_ASK_USER: you should FINISH the conversation because the final user must provide addional information
             Your task is to analyze the request and determine the appropriate next action based on the following rules and constraints:
-                Rules:
-                    1. If more information is required from the user, finish the interaction.
-                    2. If there is enough information to reply, finish the interaction.
-                    3. If neither of the above applies, assign the next task to the most appropriate worker.
-                Constraints:
-                    1. Never call the same worker more than once in a row.
-                    1. Never call the same worker more than twice.
-                    2. You must finish the conversation at some point.
-                    To make your decision, follow these steps:
-                    1. Analyze the user request and the available worker roles.
-                    2. Determine if there is enough information to respond or if more information is needed from the user.
-                    3. If more information is needed or if a response can be provided, decide to finish the interaction.
-                    4. If neither of the above applies, select the most appropriate worker for the next task.
-                        5. Keep track of how many times each worker has been called to ensure you don't exceed the limit.
-            You can also evaluate the workers recommendations to decide the next action
+            Rules:
+                1. If more information is required from the final user, FINISH the conversation.
+                2. If there is some information to reply, FINISH the conversation.
+                3. Analyze the recommended actions provided by the workers to decide.
+                4. DO NOT INSIST in obtain more information than the provided by the workers
+                5. DO NOT INSIST in interact with the same worker more than twice.
+            Constraints:
+                1. Never interact with the same worker more than once in a row.
+                2. Never recursively interact with the same worker.
+                3. Never interact with the same worker more than twice in a conversation.
+                4. You must FINISH the conversation at some point.
+                5. ALWAYS use the information available to you, never try to create your own responses or conclusions, use actually factual data
         """
         # <decision>
         #     Action: [Choose one: "Assign to Worker", "Finish - Need More Information", or "Finish - Ready to Respond"]
@@ -92,13 +91,37 @@ class AgentSupervisor:
         # This is very simple helper function which only ever uses the last message
         return messages[-10:]
 
+
     def supervisor_agent(self, state):
         member_options = self.members_options
-        messages = self.filter_messages(state["messages"])
+        # messages = self.filter_messages(state["messages"])
         # check how to do it better
+        trimmer = trim_messages(
+            token_counter=len,
+            # Keep the last <= n_count tokens of the messages.
+            strategy="last",
+            # When token_counter=len, each message
+            # will be counted as a single token.
+            # Remember to adjust for your use case
+            max_tokens=5,
+            # Most chat models expect that chat history starts with either:
+            # (1) a HumanMessage or
+            # (2) a SystemMessage followed by a HumanMessage
+            start_on="human",
+            # Most chat models expect that chat history ends with either:
+            # (1) a HumanMessage or
+            # (2) a ToolMessage
+            end_on=("human", "tool"),
+            # Usually, we want to keep the SystemMessage
+            # if it's present in the original history.
+            # The SystemMessage has special instructions for the model.
+            include_system=True,
+        )
+
         class routeResponse(BaseModel):
             next: Literal[*member_options]
-        supervisor_chain = self.prompt | self.model.with_structured_output(routeResponse)
-        supervision = supervisor_chain.invoke(messages)
+            explanation: str
+        supervisor_chain = trimmer | self.prompt | self.model.with_structured_output(routeResponse)
+        supervision = supervisor_chain.invoke(state["messages"])
         return supervision
 

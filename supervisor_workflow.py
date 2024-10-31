@@ -1,4 +1,4 @@
-from typing import Sequence
+from typing import Sequence, Literal
 from langgraph.graph.message import add_messages
 from typing_extensions import TypedDict
 from typing import Annotated, List
@@ -11,8 +11,9 @@ from langchain_anthropic import ChatAnthropic
 from config import retrieve_parameters
 from crag_agent import process_request_crag_as_team
 from langgraph.graph import END, StateGraph, START
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage, RemoveMessage
 from services.redis_checkpointer.redis_saver import RedisSaver
+from vertex import load_vertex_model_gemini
 import json
 from pydantic import BaseModel, Field
 
@@ -21,7 +22,8 @@ config_parameters = retrieve_parameters()
 
 # load a worker
 # worker = { "worker_name": "city guide", "worker_task": "help users find relevant plans around the city"}
-worker_model = ChatAnthropic(model=config_parameters.llm_model_id, temperature=0)
+# worker_model = ChatAnthropic(model=config_parameters.llm_model_id, temperature=0)
+worker_model = load_vertex_model_gemini()
 # worker_tools_info = {}
 # worker_tools = []
 # worker_id = "CityGuide"
@@ -79,19 +81,31 @@ class AgentState(TypedDict):
     team_members: List[str]
     # The 'next' field indicates where to route to next
     next: str
-    summary: str
+    explanation: str
     cool_post: str
 
+def filter_conversation(state: AgentState):
+    # We now need to delete messages that we no longer want to show up
+    # I will delete all but the last ten messages, but you can change this
+    delete_messages = [RemoveMessage(id=m.id) for m in state["messages"][:-10]]
+    return {"messages": delete_messages}
 
 
+def should_filter_conversation(state: AgentState) -> Literal["filter_conversation", "supervisor"]:
+    messages = state["messages"]
+    # If there are more than six messages, then we summarize the conversation
+    if len(messages) > 10:
+        return "filter_conversation"
+    else:
+        return "supervisor"
 
 # from parameters we are going to retrieve
 # custom agent name and custom agent role description
 # pass the parameters to the simple_tool workflow as an agent to resolve a request
 # The parameters are (tool name, tool_description, tool_schema)
 print(config_parameters)
-model = ChatAnthropic(model=config_parameters.llm_model_id, temperature=0)
-supervisor_nodes = SupervisorNodes(model)
+# model = ChatAnthropic(model=config_parameters.llm_model_id, temperature=0)
+supervisor_nodes = SupervisorNodes(worker_model)
 
 def decide_to_reply(state):
     if state["know_reply"]:
@@ -101,41 +115,51 @@ def decide_to_reply(state):
 
 # "Summarizer": "grades the information provided by the members and generates a summary in clear language before reply",
 members = {
-    "Researcher": "searchs information about the user request related to the event COP16 and generates a response",
-    "VacationsPlanner": "helps people find their vacations and buy vacations plans",
-    worker_id: "helps people find what to do in cities"
+    "ResearcherWorker": "searchs information about the user request related to the event COP16 and generates a response",
+    "VacationsPlannerWorker": "helps people find their vacations and buy vacations plans",
+    worker_id: "helps people find what to do in cities",
+    "AssistantWorker": "introduces the agent and provides details about the agent (name, role and features)"
 }
-agent_supervisor = AgentSupervisor(model=model, members=members)
+agent_supervisor = AgentSupervisor(model=worker_model, members=members)
 research_graph = StateGraph(AgentState)
+research_graph.add_node("supervisor", agent_supervisor.supervisor_agent)
+research_graph.add_node("filter_conversation", filter_conversation)
 # research_graph.add_node("CustomerAgent", supervisor_nodes.reply_to_user)
 research_graph.add_node("Researcher", process_request_crag_as_team)
-research_graph.add_node("Assistant", supervisor_nodes.assistant)
-research_graph.add_node("supervisor", agent_supervisor.supervisor_agent)
+research_graph.add_node("AssistantWorker", supervisor_nodes.assistant)
+
 research_graph.add_node("reply", supervisor_nodes.gen_final_reply)
-research_graph.add_node("VacationsPlanner", process_request_vacations_planner_as_team)
+research_graph.add_node("VacationsPlannerWorker", process_request_vacations_planner_as_team)
 research_graph.add_node(worker_id, dynamic_worker.process_request_as_agent)
 
 # Define the control flow
+research_graph.add_edge("AssistantWorker", "supervisor")
 research_graph.add_edge("Researcher", "supervisor")
-research_graph.add_edge("VacationsPlanner", "supervisor")
+research_graph.add_edge("VacationsPlannerWorker", "supervisor")
 research_graph.add_edge(worker_id, "supervisor")
 research_graph.add_conditional_edges(
     "supervisor",
     lambda x: x["next"],
-    {"Researcher": "Researcher", "VacationsPlanner": "VacationsPlanner", worker_id: worker_id, "FINISH": "reply"},
+    {"Researcher": "Researcher", "VacationsPlannerWorker": "VacationsPlannerWorker", "AssistantWorker": "AssistantWorker", worker_id: worker_id, "FINISH": "reply"},
 )
 # research_graph.add_edge(START, "supervisor")
-
-research_graph.add_edge(START, "Assistant")
 research_graph.add_conditional_edges(
-    "Assistant",
-    decide_to_reply,
-    {
-        "supervisor": "supervisor",
-        "FINISH": "reply",
-    },
+    START,
+    should_filter_conversation,
+    {"supervisor": "supervisor", "filter_conversation": "filter_conversation"}
 )
+research_graph.add_edge("filter_conversation", "supervisor")
 
+#
+# research_graph.add_edge(START, "Assistant")
+# research_graph.add_conditional_edges(
+#     "Assistant",
+#     decide_to_reply,
+#     {
+#         "supervisor": "supervisor",
+#         "FINISH": "reply",
+#     },
+# )
 research_graph.add_edge("reply", END)
 
 
@@ -162,10 +186,10 @@ def init_conversation(message: str):
             {
                 "recursion_limit": 150,
                 "user_id": "restebance@gmail.com",
-                "thread_id": "11"
+                "thread_id": "13"
             },
         )
-        print(reply)
+        print(reply['response'])
         # print("stream: ", s.keys())
         # if 'reply' in s.keys():
         #     print("reply found")
@@ -176,9 +200,12 @@ def init_conversation(message: str):
         #     print("END")
 
 if __name__ == "__main__":
-    # init_conversation("Hola")
-    # init_conversation("que planes tienes disponibles?")
+    # init_conversation("Que sabes hacer?")
+    # init_conversation("Quien eres?")
+    # init_conversation("que planes vacacionales tienes disponibles?")
     # init_conversation("puedes darme los planes mas bonitos?")
     # init_conversation("Mi nombre es Esteban, tengo 33 años y mi id es 123")
     # init_conversation("que planes tienes disponibles para la ciudad?")
-    init_conversation("amplia información sobre el plan TorreAlta")
+    #   init_conversation("solo dame la información")
+    init_conversation("me gustaria saber planes para la ciudad de Medellin")
+    # init_conversation("amplia información sobre el plan TorreAlta")
