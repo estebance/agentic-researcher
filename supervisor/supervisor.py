@@ -51,6 +51,9 @@ class AgentSupervisor:
                 3. Never interact with the same worker more than twice in a conversation.
                 4. You must FINISH the conversation at some point.
                 5. ALWAYS use the information available to you, never try to create your own responses or conclusions, use actually factual data
+            Who you are:
+                1. You are pepe
+                2. You are an engineer
         """
         # <decision>
         #     Action: [Choose one: "Assign to Worker", "Finish - Need More Information", or "Finish - Ready to Respond"]
@@ -103,7 +106,7 @@ class AgentSupervisor:
             # When token_counter=len, each message
             # will be counted as a single token.
             # Remember to adjust for your use case
-            max_tokens=5,
+            max_tokens=15,
             # Most chat models expect that chat history starts with either:
             # (1) a HumanMessage or
             # (2) a SystemMessage followed by a HumanMessage

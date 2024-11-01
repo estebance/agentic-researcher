@@ -141,16 +141,21 @@ class SupervisorNodes:
         Returns:
             state (dict): New key added to state, generation, that contains LLM generation
         """
-        last_messages = state["messages"][-5:]
-        # print("---FINAL REPLY---")
-        # print(state)
-        system = """Generate a nice message to the final user using as context this conversation, do not provide any explanations just return the message"""
+        # last_messages = state["messages"][-5:]
+        print("---FINAL REPLY---")
+        print(state["messages"])
+        system = """
+            Generate a nice message to the final user using as context this conversation, do not provide any explanations just return the message
+            Rules:
+             1. You MUST rely ONLY on the information and messages provided
+        """
         final_prompt = ChatPromptTemplate.from_messages(
             [
                 ("system", system),
                 MessagesPlaceholder(variable_name="messages")
             ]
         )
+
         final_answer_generator = final_prompt | self.model
-        final_state = final_answer_generator.invoke(state)
+        final_state = final_answer_generator.invoke(state["messages"][-2:])
         return {"response": final_state.content}

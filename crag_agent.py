@@ -47,7 +47,7 @@ def process_request_crag(user_id, thread_id, human_message):
         return final_state["generation"]
 
 
-def process_request_crag_as_team(state, agent_name='Researcher'):
+def process_request_crag_as_team(agent_name, state):
     config_parameters = retrieve_parameters()
     print(config_parameters)
     model = ChatAnthropic(model=config_parameters.llm_model_id, temperature=0)
