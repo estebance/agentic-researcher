@@ -1,9 +1,9 @@
 import json
 from pydantic import BaseModel, ValidationError
 from typing import Optional
+from services.llms.model_selector import ModelProvider
+
 PARAMETERS_FILE = "params.json"
-
-
 
 class CheckpointerAuthParams(BaseModel):
     username: str
@@ -51,9 +51,15 @@ class ResearcherWorkerParams(BaseModel):
     web_retriever: WebRetrieverParams
     kdb_retriever_params: KdbRetrieverParams
 
+class ModelProviderParams(BaseModel):
+    name: ModelProvider
+    model_id: str
+    provider_args: Optional[dict] = None
+
 class ParametrizationAgent(BaseModel):
     provider: str
     llm_model_id: str
+    model_provider: Optional[ModelProviderParams] = None
     checkpointer: CheckpointerParams
     workers: list[WokerParams]
     assistant_worker: AssistantWorkerParams
