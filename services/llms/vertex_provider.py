@@ -46,9 +46,14 @@ class VertexProvider:
             callbacks=[self.stdout_callback_handler]
         )
 
-# with open('sa.json', 'r') as file:
-#     vertex_sa = json.load(file)
-#
-# credentials = service_account.Credentials.from_service_account_info(vertex_sa, scopes=["https://www.googleapis.com/auth/cloud-platform"])
-# vertexai.init(project=GCP_MODEL_ID, location=GCP_PROJECT_REGION, credentials=credentials)
 
+    # TODO retrieve vertex chat
+    def retrieve_vertex_chat(self):
+        model = None
+        if self.model_id.startswith("gemini"):
+            model = self.load_vertex_model_gemini()
+        elif self.model_id.startswith("claude"):
+            model = self.load_vexter_model_anthropic()
+        else:
+            raise Exception(f"model name not identified: {self.model_id}")
+        return model

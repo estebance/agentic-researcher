@@ -5,7 +5,7 @@ from langchain_core.callbacks import StdOutCallbackHandler
 import json
 class AnthropicProvider:
 
-    def __init__(self, model_id, temperature=0):
+    def __init__(self, model_id, temperature):
         self.model_id = model_id
         self.stdout_callback_handler = StdOutCallbackHandler()
         self.temperature = temperature

@@ -19,6 +19,7 @@ import json
 from pydantic import BaseModel, Field
 from IPython.display import Image
 from dotenv import load_dotenv
+from services.llms.model_selector import ModelSelector
 
 load_dotenv()
 
@@ -69,11 +70,19 @@ class SupervisorWorkflow:
 
     def __init__(self):
         self.config_parameters = retrieve_parameters()
-        # retrieve nodes
-        self.worker_model = ChatAnthropic(
-            model="claude-3-5-sonnet-20241022",
-            temperature=0
+
+        model_selector = ModelSelector(
+            model_id=self.config_parameters.model_provider.model_id,
+            provider=self.config_parameters.model_provider.provider,
+            temperature=self.config_parameters.model_provider.temperature,
+            provider_args=self.config_parameters.model_provider.provider_args
         )
+        self.worker_model = model_selector.get_model()
+        # retrieve nodes
+        # self.worker_model = ChatAnthropic(
+        #     model="claude-3-5-sonnet-20241022",
+        #     temperature=0
+        # )
         self.supervisor_nodes = SupervisorNodes(self.worker_model)
         self.workflow_members, self.action_map = self.extract_workflow_members_confg()
         # inject members

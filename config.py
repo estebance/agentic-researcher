@@ -1,7 +1,7 @@
 import json
 from pydantic import BaseModel, ValidationError
 from typing import Optional
-from services.llms.model_selector import ModelProvider
+from services.llms.model_selector import ModelProvider, ModelSelector
 
 PARAMETERS_FILE = "params.json"
 
@@ -52,8 +52,9 @@ class ResearcherWorkerParams(BaseModel):
     kdb_retriever_params: KdbRetrieverParams
 
 class ModelProviderParams(BaseModel):
-    name: ModelProvider
+    provider: ModelProvider
     model_id: str
+    temperature: float
     provider_args: Optional[dict] = None
 
 class ParametrizationAgent(BaseModel):
@@ -79,6 +80,17 @@ def retrieve_parameters():
     with open(PARAMETERS_FILE, 'r') as file:
         data = json.load(file)
         parameters = validate_parametrization_file(data)
+        # load your model
+        model_parameters  = parameters.model_provider
+        selector = model = ModelSelector(
+            model_parameters.provider,
+            model_parameters.model_id,
+            model_parameters.temperature,
+            **model_parameters.provider_args
+        )
+        selector.get_model()
+        print(model)
+
     return parameters
 
 if __name__ == "__main__":
