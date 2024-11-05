@@ -1,16 +1,25 @@
 {
     "provider": "AWS",
     "model_id": "<YOUR BEDROCK MODEL ID>",
-    "kdb_retriever_params": {
-        "kdb_id": "<YOUR KDB ID>",
-        "kdb_max_number_of_results": 3,
-        "kdb_region": "us-east-1"
+    "researcher_worker": {
+        "id": "ResearcherWorker",
+        "task": "searchs information about the user request related to the topic of your interest",
+        "enabled": true,
+        "web_retriever": {
+            "enabled": false,
+            "urls": [],
+            "is_advanced_search": "true",
+            "max_number_of_resources": 5
+        },
+        "kdb_retriever_params": {
+            "kdb_id": "<YOUR BEDROCK KDB>",
+            "kdb_max_number_of_results": 3,
+            "kdb_region": "us-east-1"
+        }
     },
-    "web_retriever": {
-        "enabled": false,
-        "urls": [],
-        "is_advanced_search": "true",
-        "max_number_of_resources": 5
+    "assistant_worker": {
+        "id": "AssistantWorker",
+        "task": "introduces the agent and all the details about the agent (name, role and features)"
     },
     "checkpointer": {
         "endpoint": "127.0.0.1",

@@ -2,13 +2,15 @@ from fastapi import FastAPI, Request
 import uvicorn
 from dotenv import load_dotenv
 from pydantic import BaseModel
-
+from supervisor_workflow import SupervisorWorkflow
 from crag_agent import process_request_crag
 
 load_dotenv()
 
 app = FastAPI()
 
+supervised_workflow = SupervisorWorkflow()
+supervised_chain = supervised_workflow.gen_chain()
 
 class InteractionData(BaseModel):
     message: str
@@ -55,8 +57,6 @@ async def plans(plans_request: PlansData):
     }
 
 @app.post("/city-plans")
-
-
 async def city_plans(request: Request):
     print(request)
     return {
@@ -98,5 +98,31 @@ async def plans(plans_request: PlansData):
                     "name": "nice vacations",
                     "id": 1
                 }
+        }
+    }
+
+class SupervisorData(BaseModel):
+    message: str
+    user_id: str
+    thread_id: str
+
+@app.post("/supervisor")
+async def supervisor(supervisor_request: SupervisorData):
+    request_body = supervisor_request.model_dump()
+    print(request_body)
+    # message = "me gustaria saber planes para la ciudad de Medellin?"
+    message = " que planes tenes en medellin??"
+    reply = supervised_chain.invoke(
+        message,
+        {
+            "recursion_limit": 150,
+            "user_id": "restebance@gmail.com",
+            "thread_id": "15"
+        },
+    )
+    print(reply['response'])
+    return {
+        "data": {
+            "message": reply['response']
         }
     }

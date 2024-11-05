@@ -47,6 +47,7 @@ class AssistantWorkerParams(BaseModel):
 class ResearcherWorkerParams(BaseModel):
     id: str
     task: str
+    enabled: bool
     web_retriever: WebRetrieverParams
     kdb_retriever_params: KdbRetrieverParams
 

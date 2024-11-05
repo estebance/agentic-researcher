@@ -67,7 +67,7 @@ def should_filter_conversation(state: AgentState) -> Literal["filter_conversatio
 class SupervisorWorkflow:
 
 
-    def __init__(self, has_researcher=True):
+    def __init__(self):
         self.config_parameters = retrieve_parameters()
         # retrieve nodes
         self.worker_model = ChatAnthropic(
@@ -80,11 +80,12 @@ class SupervisorWorkflow:
         self.workflow_members.update({
             self.config_parameters.assistant_worker.id: self.config_parameters.assistant_worker.task
         })
-        if has_researcher:
+        self.enabled_researcher = self.config_parameters.researcher_worker.enabled
+        if self.enabled_researcher:
             self.workflow_members.update({self.config_parameters.researcher_worker.id: self.config_parameters.researcher_worker.task})
         self.agent_supervisor = AgentSupervisor(model=self.worker_model, members=self.workflow_members)
         self.graph = StateGraph(AgentState)
-        self.has_researcher = has_researcher
+
 
     def extract_workflow_members_confg(self):
         dynamic_members = {}
@@ -133,7 +134,7 @@ class SupervisorWorkflow:
         # self.workflow_members.update({"AssistantWorker": "introduces the agent and provides details about the agent (name, role and features)"})
         self.action_map.update({"AssistantWorker": "AssistantWorker"})
 
-        if self.has_researcher:
+        if self.enabled_researcher:
             process_request_crag_as_team_partial = partial(process_request_crag_as_team, self.config_parameters.researcher_worker.id)
             self.graph.add_node(self.config_parameters.researcher_worker.id, process_request_crag_as_team_partial)
             self.graph.add_edge(self.config_parameters.researcher_worker.id, "supervisor")
@@ -158,6 +159,15 @@ class SupervisorWorkflow:
         except Exception:
             # This requires some extra dependencies and is optional
             pass
+
+    def gen_chain(self):
+        self.gen_workflow()
+        with RedisSaver.from_conn_info(host="localhost", port=6379, db=1) as checkpointer:
+            supervised_chain = self.graph.compile(
+                checkpointer=checkpointer
+            )
+            supervised_chain = enter_chain | supervised_chain
+            return supervised_chain
 
 
 def enter_chain(message: str):
