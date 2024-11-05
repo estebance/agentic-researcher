@@ -40,14 +40,23 @@ class WokerParams(BaseModel):
     task: str
     tools: list[ToolsParams]
 
+class AssistantWorkerParams(BaseModel):
+    id: str
+    task: str
+
+class ResearcherWorkerParams(BaseModel):
+    id: str
+    task: str
+    web_retriever: WebRetrieverParams
+    kdb_retriever_params: KdbRetrieverParams
+
 class ParametrizationAgent(BaseModel):
     provider: str
     llm_model_id: str
-    kdb_retriever_params: KdbRetrieverParams
-    web_retriever: WebRetrieverParams
     checkpointer: CheckpointerParams
     workers: list[WokerParams]
-
+    assistant_worker: AssistantWorkerParams
+    researcher_worker: ResearcherWorkerParams
 
 def validate_parametrization_file(json_data):
     try:

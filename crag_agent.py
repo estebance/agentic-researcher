@@ -53,7 +53,7 @@ def process_request_crag_as_team(agent_name, state):
     model = ChatAnthropic(model=config_parameters.llm_model_id, temperature=0)
     # model = ChatBedrock(model_id=config_parameters.llm_model_id, temperature=0)
     # LOAD CONFIG THEN BUILD WORKFLOW AND INVOKE
-    graph = WorkflowGraph(model, config_parameters.kdb_retriever_params, config_parameters.web_retriever)
+    graph = WorkflowGraph(model, config_parameters.researcher_worker.kdb_retriever_params, config_parameters.researcher_worker.web_retriever)
     workflow = graph.workflow
     # OH MY CAT there is not checkpointer here
     llm_app = workflow.compile()
