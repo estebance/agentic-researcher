@@ -1,3 +1,5 @@
+import json
+
 from langchain_core.tools import tool, StructuredTool
 from functools import partial
 from .utilities import model_from_schema, request_service
@@ -11,11 +13,11 @@ def call_api(endpoint, config, **args):
         print("config: ", config)
         print("arguments function: ", args)
         request_body = {
-            "plans": ["hi"]
+            "data": {
+                **args
+            }
         }
-        request_headers = {
-            "Content-Type": "application/json"
-        }
+        request_headers = config["headers"]
         response = request_service(endpoint, request_body, request_headers)
         print(response)
         return response

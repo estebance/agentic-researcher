@@ -106,18 +106,17 @@ class SupervisorData(BaseModel):
     user_id: str
     thread_id: str
 
+# TODO provide the thread_id and the user_id
 @app.post("/supervisor")
 async def supervisor(supervisor_request: SupervisorData):
     request_body = supervisor_request.model_dump()
-    print(request_body)
-    # message = "me gustaria saber planes para la ciudad de Medellin?"
-    message = " que planes tenes en medellin??"
+    message = request_body["message"]
     reply = supervised_chain.invoke(
         message,
         {
             "recursion_limit": 150,
             "user_id": "restebance@gmail.com",
-            "thread_id": "15"
+            "thread_id": "16"
         },
     )
     print(reply['response'])

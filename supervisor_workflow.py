@@ -49,15 +49,15 @@ class AgentState(TypedDict):
     cool_post: str
 
 def filter_conversation(state: AgentState):
-    # We now need to delete messages that we no longer want to show up
-    # I will delete all but the last ten messages, but you can change this
-    delete_messages = [RemoveMessage(id=m.id) for m in state["messages"][:-10]]
+    # We now need to delete messages that we no longer want to show up - has been obtained from langgraph docs
+    # I will delete all but the last fifteen messages, but you can change this
+    delete_messages = [RemoveMessage(id=m.id) for m in state["messages"][:-15]]
     return {"messages": delete_messages}
 
 
 def should_filter_conversation(state: AgentState) -> Literal["filter_conversation", "supervisor"]:
     messages = state["messages"]
-    # If there are more than six messages, then we summarize the conversation
+    # If there are more than fifteen messages, then we  filter the conversation
     if len(messages) > 15:
         return "filter_conversation"
     else:
@@ -204,7 +204,7 @@ def init_conversation(graph , message: str):
 
 supervised_workflow = SupervisorWorkflow()
 supervised_workflow.gen_workflow()
-# supervised_workflow.gen_workflow_image()
+supervised_workflow.gen_workflow_image()
 
 if __name__ == "__main__":
     graph = supervised_workflow.graph
