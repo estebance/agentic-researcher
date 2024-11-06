@@ -13,12 +13,12 @@ GCP_PROJECT_REGION = os.environ.get('GCP_PROJECT_REGION')
 
 class VertexProvider:
 
-    def __init__(self, model_id, temperature, **vertex_params ):
+    def __init__(self, model_id, temperature, **provider_args):
         self.model_id = model_id
         self.temperature = temperature
-        self.project_id = vertex_params["project_id"]
-        self.location = vertex_params["location"]
-        self.sa = vertex_params["sa"]
+        self.project_id = provider_args["project_id"]
+        self.location = provider_args["location"]
+        self.sa = json.loads(provider_args["sa"])
         self.project_id = self.project_id
         self.location = self.location
         self.credentials = service_account.Credentials.from_service_account_info(self.sa, scopes=["https://www.googleapis.com/auth/cloud-platform"])

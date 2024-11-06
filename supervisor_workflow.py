@@ -70,12 +70,12 @@ class SupervisorWorkflow:
 
     def __init__(self):
         self.config_parameters = retrieve_parameters()
-
+        print(self.config_parameters.model_provider.provider_args)
         model_selector = ModelSelector(
             model_id=self.config_parameters.model_provider.model_id,
             provider=self.config_parameters.model_provider.provider,
             temperature=self.config_parameters.model_provider.temperature,
-            provider_args=self.config_parameters.model_provider.provider_args
+            **self.config_parameters.model_provider.provider_args
         )
         self.worker_model = model_selector.get_model()
         # retrieve nodes

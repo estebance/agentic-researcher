@@ -80,17 +80,6 @@ def retrieve_parameters():
     with open(PARAMETERS_FILE, 'r') as file:
         data = json.load(file)
         parameters = validate_parametrization_file(data)
-        # load your model
-        model_parameters  = parameters.model_provider
-        selector = model = ModelSelector(
-            model_parameters.provider,
-            model_parameters.model_id,
-            model_parameters.temperature,
-            **model_parameters.provider_args
-        )
-        selector.get_model()
-        print(model)
-
     return parameters
 
 if __name__ == "__main__":
