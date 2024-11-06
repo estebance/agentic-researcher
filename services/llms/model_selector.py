@@ -21,12 +21,15 @@ class ModelSelector:
         model = None
         model_provider = self.provider
         if model_provider == ModelProvider.AWS:
+            print(f"Loading AWS Provider: {self.model_id}")
             aws_provider = AWSProvider(self.model_id, self.temperature)
             model = aws_provider.retrieve_aws_chat()
         elif model_provider == ModelProvider.GOOGLE:
+            print(f"Loading GOOGLE Provider: {self.model_id}")
             vertex_provider = VertexProvider(self.model_id, self.temperature, **self.provider_args)
             model = vertex_provider.retrieve_vertex_chat()
         elif model_provider == ModelProvider.ANTHROPIC:
+            print(f"Loading ANTHROPIC Provider: {self.model_id}")
             anthropic_provider = AnthropicProvider(self.model_id, self.temperature)
             model = anthropic_provider.retrieve_anthropic_chat()
         else:

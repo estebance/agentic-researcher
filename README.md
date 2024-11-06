@@ -63,8 +63,9 @@ As mentioned in the paper “corrective Retrieval Augmented Generation” Large 
     - Anthropic ref ```"llm_model_id": "claude-3-5-sonnet-20240620" ```
 
     Provide the values from your AWS Account
-    - Bedrock with Anthropic ```"llm_model_id": "us.anthropic.claude-3-5-sonnet-20240620-v1:0"``` (cross regional inference)
+    - Bedrock with Anthropic ```"model_id": "us.anthropic.claude-3-5-sonnet-20240620-v1:0"``` (cross regional inference)
     - Google with Gemini ``` "model_id': "gemini-1.5-pro-002"```
+    - Google with Anthropic ```model_id: "claude-3-5-sonnet@20240620"```
 
 5. Copy the content of ```params.example.json``` in ```params.json``` then provide the parameters
 

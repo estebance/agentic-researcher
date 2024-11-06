@@ -7,9 +7,6 @@ from google.oauth2 import service_account
 
 import json
 
-GCP_MODEL_ID = os.environ.get('GCP_MODEL_ID')
-GCP_PROJECT_ID = os.environ.get('GCP_PROJECT_ID')
-GCP_PROJECT_REGION = os.environ.get('GCP_PROJECT_REGION')
 
 class VertexProvider:
 
@@ -39,9 +36,9 @@ class VertexProvider:
 
     def load_vertex_model_gemini(self):
         return ChatVertexAI(
-            model_name=GCP_MODEL_ID,
-            project=GCP_PROJECT_ID,
-            location=GCP_PROJECT_REGION,
+            model_name=self.model_id,
+            project=self.project_id,
+            location=self.location,
             credentials=self.credentials,
             callbacks=[self.stdout_callback_handler]
         )
