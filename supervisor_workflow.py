@@ -6,7 +6,6 @@ from typing import Annotated, List
 from langchain_core.messages import BaseMessage
 from supervisor.supervisor import AgentSupervisor
 from supervisor.nodes import SupervisorNodes
-from simple_tool.app import process_request_vacations_planner_as_team
 from dynamic_worker import DynamicWorker, DynamicTools
 from langchain_anthropic import ChatAnthropic
 from config import retrieve_parameters
