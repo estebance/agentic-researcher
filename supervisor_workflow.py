@@ -13,8 +13,6 @@ from crag_agent import process_request_crag_as_team
 from langgraph.graph import END, StateGraph, START
 from langchain_core.messages import HumanMessage, RemoveMessage
 from services.redis_checkpointer.redis_saver import RedisSaver
-from vertex import load_vertex_model_gemini
-import json
 from pydantic import BaseModel, Field
 from IPython.display import Image
 from dotenv import load_dotenv
