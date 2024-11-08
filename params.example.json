@@ -1,6 +1,14 @@
 {
-    "provider": "AWS",
-    "model_id": "<YOUR BEDROCK MODEL ID>",
+    "model_provider": {
+        "provider": "GOOGLE",
+        "model_id": "claude-3-5-sonnet@20240620",
+        "temperature": 0.9,
+        "provider_args": {
+            "project_id": "<project_id>",
+            "location": "us-east5",
+            "sa": "GCP_SERVICE_ACCOUNT"
+        }
+    },
     "researcher_worker": {
         "id": "ResearcherWorker",
         "task": "searchs information about the user request related to the topic of your interest",

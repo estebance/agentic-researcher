@@ -58,8 +58,6 @@ class ModelProviderParams(BaseModel):
     provider_args: Optional[dict] = None
 
 class ParametrizationAgent(BaseModel):
-    provider: str
-    llm_model_id: str
     model_provider: Optional[ModelProviderParams] = None
     checkpointer: CheckpointerParams
     workers: list[WokerParams]
