@@ -167,8 +167,12 @@ class SupervisorWorkflow:
             pass
 
     def gen_chain(self):
+        redis_endpoint = self.config_parameters.checkpointer.endpoint
+        redis_db_number = self.config_parameters.checkpointer.db_number
+        redis_port = self.config_parameters.checkpointer.port
+        redis_auth = self.config_parameters.checkpointer.auth_params
         self.gen_workflow()
-        with RedisSaver.from_conn_info(host="localhost", port=6379, db=1) as checkpointer:
+        with RedisSaver.from_conn_info(host=redis_endpoint, port=redis_port, db=redis_db_number, auth_params=redis_auth) as checkpointer:
             supervised_chain = self.graph.compile(
                 checkpointer=checkpointer
             )

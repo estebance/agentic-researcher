@@ -10,9 +10,12 @@ ENV POETRY_NO_INTERACTION=1 \
     POETRY_CACHE_DIR=/tmp/poetry_cache
 
 
-COPY app.py params.json config.py .env crag_agent.py ./
+COPY app.py params.json supervisor_workflow.py utilities.py config.py .env crag_agent.py ./
 COPY poetry.lock pyproject.toml ./
 COPY services ./services
+COPY dynamic_worker ./dynamic_worker
+COPY supervisor ./supervisor
+COPY utilities ./utilities
 COPY crag ./crag
 
 # DISABLE CACHE
