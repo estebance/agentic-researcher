@@ -12,6 +12,14 @@ app = FastAPI()
 supervised_workflow = SupervisorWorkflow()
 supervised_chain = supervised_workflow.gen_chain()
 
+@app.get("/")
+async def default():
+    return {
+        "data": {
+            "msg": "success"
+        }
+    }
+
 # TODO manage request body
 class SupervisorData(BaseModel):
     message: str

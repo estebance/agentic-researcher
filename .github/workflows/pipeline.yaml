@@ -1,0 +1,53 @@
+name: CdkPipeline
+on:
+  push:
+    branches:
+      - "develop"
+      - "feature/ecs"
+env:
+  SABIO_PIPELINE_USER_ACCESS_KEY_ID: ${{ secrets.SABIO_AWS_ACCESS_KEY_ID }}
+  SABIO_PIPELINE_USER_SECRET_ACCESS_KEY: ${{ secrets.SABIO_AWS_SECRET_ACCESS_KEY }}
+  SABIO_DEV_PIPELINE_EXECUTION_ROLE: arn:aws:iam::908027390749:role/AWSControlTowerExecution
+  SABIO_DEV_REGION: us-east-1
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/feature/ecs'
+    runs-on: ubuntu-latest
+    env:
+      APP_STAGE: dev
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+      - name: Set up Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20"
+      - name: deploy to account id
+        run: |
+          echo "Deploy to account: ${{ github.event.inputs.target_account_id}}"
+      - name: Assume the testing pipeline user role
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ env.SABIO_PIPELINE_USER_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.SABIO_PIPELINE_USER_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.SABIO_DEV_REGION }}
+          role-to-assume: ${{ env.SABIO_DEV_PIPELINE_EXECUTION_ROLE }}
+          role-session-name: dev-ecs-deployment
+          role-duration-seconds: 3600
+          role-skip-session-tagging: true
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      - name: Build, tag, and push image to Amazon ECR
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: sabiocx/multiagent
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
