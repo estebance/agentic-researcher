@@ -24,7 +24,5 @@ class Generator:
                 ("human", human_prompt),
             ]
         )
-
-    def gen_rag_chain(self):
         question_answer_chain = create_stuff_documents_chain(self.model, self.generator_prompt)
-        return question_answer_chain
+        self.question_answer_chain = question_answer_chain

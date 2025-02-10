@@ -1,4 +1,5 @@
 import os
+import logging
 from langchain.schema import Document
 from .generator import Generator
 from .graph_state import GraphState
@@ -13,8 +14,8 @@ from IPython.display import Image
 
 class WorkflowGraph:
 
-    def __init__(self, model, kdb_retriever_params, web_retriever_params):
-        self.nodes = CragNodes(model, kdb_retriever_params, web_retriever_params)
+    def __init__(self, model, kdb_retriever, web_retriever):
+        self.nodes = CragNodes(model, kdb_retriever, web_retriever)
         self.model = model
         # COMPILE THE GRAPH
         workflow = StateGraph(GraphState)
@@ -26,7 +27,7 @@ class WorkflowGraph:
         workflow.add_edge(START, "rewrite")
         workflow.add_edge("rewrite", "retrieve")
         # workflow.add_edge(START, "retrieve")
-        if  web_retriever_params.enabled:
+        if  web_retriever:
             workflow.add_node("grade_documents", self.nodes.grade_documents)  # grade documents
             workflow.add_node("web_search_node", self.nodes.web_search)  # web search
             workflow.add_edge("retrieve", "grade_documents")
@@ -42,7 +43,6 @@ class WorkflowGraph:
         else:
             workflow.add_edge("retrieve", "generate")
         workflow.add_edge("generate", END)
-        # Compile
         self.workflow = workflow
 
 
@@ -53,25 +53,6 @@ class WorkflowGraph:
             with open("crag.png", "wb") as fout:
                 fout.write(image.data)
             # display(image)
-        except Exception:
-            # This requires some extra dependencies and is optional
-            pass
-
-    # TODO check future usage
-    # def invoke_crag(self, app, question):
-    #     final_response = ""
-    #     inputs = {"question": question}
-    #     for output in app.stream(inputs):
-    #         for key, value in output.items():
-    #             # Node
-    #             print(f"Node '{key}':")
-    #             # Optional: print full state at each node
-    #             # pprint.pprint(value["keys"], indent=2, width=80, depth=None)
-    #         print("\n---\n")
-    #
-    #         # Final generation
-    #         print(output.keys())
-    #         if "generate" in output.keys():
-    #             final_response = output["generate"]["generation"]
-    #     print(final_response)
-    #     return final_response
+        except Exception as error:
+            logging.error("Error image generation for graph: ", error)
+            raise error

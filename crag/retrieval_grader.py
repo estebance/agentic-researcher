@@ -13,17 +13,15 @@ class RetrievalGrader:
     def __init__(self, model):
         self.model = model
         self.structured_llm_grader = self.model.with_structured_output(GradeDocuments)
-        system = """You are a grader assessing relevance of a retrieved document to an user question. \n
+        self.system_prompt = """
+            You are a grader assessing relevance of a retrieved document to an user question. \n
             If the document contains keyword(s) or semantic meaning related to the question, grade it as relevant. \n
             Give a binary score 'yes' or 'no' score to indicate whether the document is relevant to the question."""
         self.grade_prompt = ChatPromptTemplate.from_messages(
             [
-                ("system", system),
+                ("system", self.system_prompt),
                 ("human", "Retrieved document: \n\n {document} \n\n User question: {question}"),
             ]
         )
-
-
-    def gen_retrieval_grader_chain(self):
-        retrieval_grader = self.grade_prompt | self.structured_llm_grader
-        return retrieval_grader
+        retrieval_grader_chain = self.grade_prompt | self.structured_llm_grader
+        self.retrieval_grader_chain = retrieval_grader_chain

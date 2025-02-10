@@ -3,12 +3,11 @@ on:
   push:
     branches:
       - "develop"
-      - "feature/ecs"
 env:
-  SABIO_PIPELINE_USER_ACCESS_KEY_ID: ${{ secrets.SABIO_AWS_ACCESS_KEY_ID }}
-  SABIO_PIPELINE_USER_SECRET_ACCESS_KEY: ${{ secrets.SABIO_AWS_SECRET_ACCESS_KEY }}
-  SABIO_DEV_PIPELINE_EXECUTION_ROLE: arn:aws:iam::908027390749:role/AWSControlTowerExecution
-  SABIO_DEV_REGION: us-east-1
+  PIPELINE_USER_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  PIPELINE_USER_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  DEV_PIPELINE_EXECUTION_ROLE: arn:aws:iam:::role/AWSControlTowerExecution
+  DEV_REGION: us-east-1
 jobs:
   deploy:
     if: github.ref == 'refs/heads/feature/ecs'
@@ -31,21 +30,38 @@ jobs:
       - name: Assume the testing pipeline user role
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ env.SABIO_PIPELINE_USER_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ env.SABIO_PIPELINE_USER_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.SABIO_DEV_REGION }}
-          role-to-assume: ${{ env.SABIO_DEV_PIPELINE_EXECUTION_ROLE }}
+          aws-access-key-id: ${{ env.PIPELINE_USER_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.PIPELINE_USER_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.DEV_REGION }}
+          role-to-assume: ${{ env.DEV_PIPELINE_EXECUTION_ROLE }}
           role-session-name: dev-ecs-deployment
           role-duration-seconds: 3600
           role-skip-session-tagging: true
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
+      - name: 'Create env file'
+        run: |
+          touch .env
+          echo ANTHROPIC_API_KEY="" >> .env
+          echo REDIS_ENDPOINT="" >> .env
+          echo TAVILY_API_KEY="" >> .env
+          echo LANGSMITH_TRACING="true" >> .env
+          echo LANGSMITH_API_KEY="" >> .env
+          echo LANGCHAIN_PROJECT="" >> .env
+          echo AWS_ACCESS_KEY_ID="" >> .env
+          echo AWS_SECRET_ACCESS_KEY="" >> .env
+          echo AWS_DEFAULT_REGION="us-east-1" >> .env
+          echo BEDROCK_KDB="" >> .env
+          echo GCP_MODEL_ID="gemini-1.5-pro-002" >> .env
+          echo GCP_PROJECT_ID="" >> .env
+          echo GCP_PROJECT_REGION="us-east5" >> .env
+          cat .env
       - name: Build, tag, and push image to Amazon ECR
         id: build-image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: sabiocx/multiagent
+          ECR_REPOSITORY: <todo>
           IMAGE_TAG: ${{ github.sha }}
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .

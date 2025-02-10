@@ -40,10 +40,6 @@ class WokerParams(BaseModel):
     task: str
     tools: list[ToolsParams]
 
-class AssistantWorkerParams(BaseModel):
-    id: str
-    task: str
-
 class ResearcherWorkerParams(BaseModel):
     id: str
     task: str
@@ -53,15 +49,15 @@ class ResearcherWorkerParams(BaseModel):
 
 class ModelProviderParams(BaseModel):
     provider: ModelProvider
-    model_id: str
+    llm_model_id: str
     temperature: float
+    max_tokens: int
     provider_args: Optional[dict] = None
 
 class ParametrizationAgent(BaseModel):
-    model_provider: Optional[ModelProviderParams] = None
+    llm_model_provider: ModelProviderParams
     checkpointer: CheckpointerParams
     workers: list[WokerParams]
-    assistant_worker: AssistantWorkerParams
     researcher_worker: ResearcherWorkerParams
 
 def validate_parametrization_file(json_data):
