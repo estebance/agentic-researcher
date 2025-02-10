@@ -2,7 +2,7 @@ name: CdkPipeline
 on:
   push:
     branches:
-      - "develop"
+      - "master"
 env:
   PIPELINE_USER_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
   PIPELINE_USER_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
