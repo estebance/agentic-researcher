@@ -16,17 +16,18 @@ class CragAgent:
     def __init__(self):
         self.config_parameters = retrieve_parameters()
         model_params = self.config_parameters.llm_model_provider
-        self.model = ModelSelector(
+        model_selector = ModelSelector(
             model_params.provider,
             model_params.llm_model_id,
             model_params.temperature,
             model_params.max_tokens,
             **model_params.provider_args
         )
+        self.model = model_selector.model
         kdb_params = self.config_parameters.researcher_worker.kdb_retriever_params
-        self.kdb_retriever = KDBRetriever(kdb_params)
-        self.bedrock_retriever = self.kdb_retriever.retrieve_bedrock_kdb()
-        self.graph = WorkflowGraph(self.model, self.kdb_retriever, None)
+        kdb_retriever = KDBRetriever(kdb_params)
+        self.bedrock_retriever = kdb_retriever.retrieve_bedrock_kdb()
+        self.graph = WorkflowGraph(self.model, self.bedrock_retriever, None)
 
     def print_workflow(self):
         self.graph.generate_graph()
@@ -36,26 +37,30 @@ class CragAgent:
         # LOAD CONFIG THEN BUILD WORKFLOW AND INVOKE
         # workflow = graph.workflow
         # graph.generate_graph()
-        # with RedisSaver.from_conn_info(host=config_parameters.checkpointer.endpoint, port=config_parameters.checkpointer.port, db=config_parameters.checkpointer.db_number, auth_params=config_parameters.checkpointer.auth_params) as checkpointer:
-        #     llm_app = workflow.compile(
-        #         checkpointer=checkpointer,
-        #     )
-        #     config = {
-        #         "configurable": {
-        #             # The passenger_id is used in our flight tools to
-        #             # fetch the user's flight information
-        #             "user_id": user_id,
-        #             # Checkpoints ar2e acqcessed by thread_id
-        #             "thread_id": thread_id,
-        #         }
-        #     }
-        #     message_inputs = [HumanMessage(content=human_message)]
-        #     final_state = llm_app.invoke(
-        #         {"messages": message_inputs}, config
-        #     )
-        #     print("final response")
-        #     print(final_state['generation'])
-        #     return final_state["generation"]
+        with RedisSaver.from_conn_info(
+            host=self.config_parameters.checkpointer.endpoint,
+            port=self.config_parameters.checkpointer.port,
+            db=self.config_parameters.checkpointer.db_number,
+            auth_params=self.config_parameters.checkpointer.auth_params) as checkpointer:
+                llm_app = self.graph.workflow.compile(
+                    checkpointer=checkpointer,
+                )
+                config = {
+                    "configurable": {
+                        # The passenger_id is used in our flight tools to
+                        # fetch the user's flight information
+                        "user_id": user_id,
+                        # Checkpoints ar2e acqcessed by thread_id
+                        "thread_id": thread_id,
+                    }
+                }
+                message_inputs = [HumanMessage(content=human_message)]
+                final_state = llm_app.invoke(
+                    {"messages": message_inputs}, config
+                )
+                print("final response")
+                print(final_state['generation'])
+                return final_state["generation"]
 
 
 # def process_request_crag_as_team(agent_name, state):
@@ -79,3 +84,7 @@ class CragAgent:
 if __name__ == "__main__":
     agent = CragAgent()
     agent.print_workflow()
+    user_id = "restebance@gmail.com"
+    thread_id = "15"
+    human_meesage = "Hi there"
+    agent.process_request_crag(user_id, thread_id, human_meesage)
