@@ -1,9 +1,11 @@
-import json
-from pydantic import BaseModel, ValidationError
+from enum import Enum
+from pydantic import BaseModel
 from typing import Optional
-from services.llms.model_selector import ModelProvider, ModelSelector
 
-PARAMETERS_FILE = "params.json"
+class ModelProvider(Enum):
+    AWS = 'AWS'
+    GOOGLE = 'GOOGLE'
+    ANTHROPIC = 'ANTHROPIC'
 
 class CheckpointerAuthParams(BaseModel):
     username: str
@@ -13,16 +15,15 @@ class CheckpointerAuthParams(BaseModel):
 class CheckpointerParams(BaseModel):
     endpoint: str
     port: int
-    db_number: int
+    db_number: Optional[int] = None
     auth_params: Optional[CheckpointerAuthParams] = None
 
 class WebRetrieverParams(BaseModel):
-    enabled: bool
     urls: list[str]
     is_advanced_search: bool
     max_number_of_resources: int
 
-class KdbRetrieverParams(BaseModel):
+class BedrockKdbRetrieverParams(BaseModel):
     kdb_id: str
     kdb_max_number_of_results: int
     kdb_region: str
@@ -44,8 +45,8 @@ class ResearcherWorkerParams(BaseModel):
     id: str
     task: str
     enabled: bool
-    web_retriever: WebRetrieverParams
-    kdb_retriever_params: KdbRetrieverParams
+    web_retriever: Optional[WebRetrieverParams] = None
+    bedrock_kdb_retriever_params: BedrockKdbRetrieverParams
 
 class ModelProviderParams(BaseModel):
     provider: ModelProvider
@@ -57,24 +58,5 @@ class ModelProviderParams(BaseModel):
 class ParametrizationAgent(BaseModel):
     llm_model_provider: ModelProviderParams
     checkpointer: CheckpointerParams
-    workers: list[WokerParams]
+    workers: Optional[list[WokerParams]] = None
     researcher_worker: ResearcherWorkerParams
-
-def validate_parametrization_file(json_data):
-    try:
-        parametrization = ParametrizationAgent(**json_data)
-        return parametrization
-    except ValidationError as e:
-        print("the provided config format is not valid: ", e)
-        raise e
-
-
-def retrieve_parameters():
-    parameters = None
-    with open(PARAMETERS_FILE, 'r') as file:
-        data = json.load(file)
-        parameters = validate_parametrization_file(data)
-    return parameters
-
-if __name__ == "__main__":
-    retrieve_parameters()

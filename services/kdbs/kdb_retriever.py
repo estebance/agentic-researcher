@@ -1,10 +1,15 @@
 from langchain_community.retrievers import AmazonKnowledgeBasesRetriever
-
+from services.config.config_model import BedrockKdbRetrieverParams
 
 class KDBRetriever:
 
-    def __init__(self, kdb_config_params):
+    def __init__(self, kdb_config_params: BedrockKdbRetrieverParams, provider='AWS'):
         self.kdb_config_params = kdb_config_params
+        self.retriever = None
+        if provider == 'AWS':
+            self.retriever = self.retrieve_bedrock_kdb()
+        else:
+            raise Exception("provider not defined")
 
     def retrieve_bedrock_kdb(self):
         retriever = AmazonKnowledgeBasesRetriever(

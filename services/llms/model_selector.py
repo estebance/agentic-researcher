@@ -1,26 +1,17 @@
 from enum import Enum
-
-from pyasn1_modules.rfc1905 import max_bindings
-
 from .anthropic_provider import AnthropicProvider
 from .vertex_provider import VertexProvider
 from .aws_provider import AWSProvider
-
-class ModelProvider(Enum):
-    AWS = 'AWS'
-    GOOGLE = 'GOOGLE'
-    ANTHROPIC = 'ANTHROPIC'
-
+from services.config.config_model import ModelProviderParams, ModelProvider
 
 class ModelSelector:
 
-    def __init__(self, provider, model_id, temperature, max_tokens, **provider_args):
-        self.provider = provider
-        self.model_id = model_id
-        self.temperature = temperature
-        self.max_tokens = max_tokens
-        self.provider_args = provider_args
-        model_provider = self.provider
+    def __init__(self, model_parameters: ModelProviderParams):
+        model_provider = model_parameters.provider
+        self.model_id = model_parameters.llm_model_id
+        self.temperature = model_parameters.temperature
+        self.max_tokens = model_parameters.max_tokens
+        self.provider_args = model_parameters.provider_args
         self.model = None
         if model_provider == ModelProvider.AWS:
             print(f"Loading AWS Provider: {self.model_id}")

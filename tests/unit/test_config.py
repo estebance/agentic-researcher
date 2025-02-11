@@ -1,6 +1,6 @@
 import pytest
 from pydantic import ValidationError
-from config import validate_parametrization_file
+from config_retriever import validate_parametrization_file
 
 def test_valid_parameters():
     valid_json = {

@@ -7,27 +7,19 @@ from crag.workflow import WorkflowGraph
 from services.kdbs.kdb_retriever import KDBRetriever
 from services.llms.model_selector import ModelSelector
 from services.redis_checkpointer.redis_saver import RedisSaver
-from config import retrieve_parameters
+from config_retriever import ConfigRetriever
 # The checkpointer lets the graph persist its state
 # this is a complete memory for the entire graph.
 
 class CragAgent:
 
     def __init__(self):
-        self.config_parameters = retrieve_parameters()
-        model_params = self.config_parameters.llm_model_provider
-        model_selector = ModelSelector(
-            model_params.provider,
-            model_params.llm_model_id,
-            model_params.temperature,
-            model_params.max_tokens,
-            **model_params.provider_args
-        )
-        self.model = model_selector.model
-        kdb_params = self.config_parameters.researcher_worker.kdb_retriever_params
-        kdb_retriever = KDBRetriever(kdb_params)
-        self.bedrock_retriever = kdb_retriever.retrieve_bedrock_kdb()
-        self.graph = WorkflowGraph(self.model, self.bedrock_retriever, None)
+        parameters_file_name  = "params.json"
+        config_retriever = ConfigRetriever(parameters_file_name)
+        kdb_retriever = config_retriever.retriever
+        model = config_retriever.model
+        self.checkpointer = config_retriever.checkpointer
+        self.graph = WorkflowGraph(model, kdb_retriever, None)
 
     def print_workflow(self):
         self.graph.generate_graph()
@@ -37,11 +29,7 @@ class CragAgent:
         # LOAD CONFIG THEN BUILD WORKFLOW AND INVOKE
         # workflow = graph.workflow
         # graph.generate_graph()
-        with RedisSaver.from_conn_info(
-            host=self.config_parameters.checkpointer.endpoint,
-            port=self.config_parameters.checkpointer.port,
-            db=self.config_parameters.checkpointer.db_number,
-            auth_params=self.config_parameters.checkpointer.auth_params) as checkpointer:
+        with RedisSaver.from_conn_info(self.checkpointer) as checkpointer:
                 llm_app = self.graph.workflow.compile(
                     checkpointer=checkpointer,
                 )

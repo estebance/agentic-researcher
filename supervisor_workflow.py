@@ -8,7 +8,7 @@ from supervisor.supervisor import AgentSupervisor
 from supervisor.nodes import SupervisorNodes
 from dynamic_worker import DynamicWorker, DynamicTools
 from langchain_anthropic import ChatAnthropic
-from config import retrieve_parameters
+from config_retriever import retrieve_parameters
 from crag_agent import process_request_crag_as_team
 from langgraph.graph import END, StateGraph, START
 from langchain_core.messages import HumanMessage, RemoveMessage
